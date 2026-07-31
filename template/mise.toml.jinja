@@ -4,9 +4,11 @@ mani = "latest"
 fnox = "latest"
 {%- endif %}
 
-[tasks.hello]
-description = "Print Hello World"
-run = "echo 'Hello World'"
+# Cross-repo tasks are declared in mani.yaml so they keep mani's targeting and
+# parallelism; run them directly with `mani run <task> --all --parallel`, or via
+# the thin wrappers below so `mise run` stays the single entry point.
+#
+# Meta-level tasks (sync, secrets) are defined here.
 
 [tasks.sync]
 description = "Clone sub-repos and mirror the mani block into .ignore"
@@ -30,13 +32,21 @@ block=$(awk '/^# mani #$/{f=!f; next} f' .gitignore)
 echo "synced $(printf '%s' "$block" | grep -c . || true) sub-repo(s) into .gitignore and .ignore"
 '''
 
+[tasks.hello]
+description = "Smoke test: run the mani hello task everywhere"
+run = "mani run hello --all"
+
 [tasks.status]
-description = "Show git status across all sub-repos"
-run = "mani exec --all 'git status --short'"
+description = "git status across all sub-repos"
+run = "mani run status --all"
 
 [tasks.pull]
-description = "Pull latest for all sub-repos"
-run = "mani exec --all 'git pull --ff-only'"
+description = "Fast-forward pull across all sub-repos"
+run = "mani run pull --all"
+
+[tasks.tasks]
+description = "List cross-repo tasks defined in mani.yaml"
+run = "mani list tasks"
 {%- if use_fnox %}
 
 [tasks.secrets]

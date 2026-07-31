@@ -3,11 +3,32 @@ projects:
     path: .
     url: https://github.com/{{ github_user }}/{{ repo_name }}.git
 
-  # Add sub-repos here. `mani sync` clones them and maintains the
-  # "# mani #" block in .gitignore; `mise run sync` mirrors that block
-  # into .ignore so they stay out of editor search too.
+  # Add sub-repos here, then run `mise run sync` (not `mani sync` — only the
+  # wrapper mirrors the "# mani #" block into .ignore as well as .gitignore).
   #
   # example-repo:
   #   path: example-repo
   #   url: https://github.com/{{ github_user }}/example-repo.git
   #   tags: [active]
+
+# Tasks that run *inside each project* belong here, so they keep mani's
+# targeting (--all, --tags, --paths), parallelism (--parallel --forks 8),
+# `mani list tasks` and `mani tui`.
+#
+# Meta-level tasks (sync, secrets) live in mise.toml instead.
+tasks:
+  hello:
+    desc: Print Hello World
+    cmd: echo "Hello World"
+
+  status:
+    desc: Show short git status
+    cmd: git status --short
+
+  pull:
+    desc: Fast-forward pull
+    cmd: git pull --ff-only
+
+  branch:
+    desc: Show current branch
+    cmd: git rev-parse --abbrev-ref HEAD

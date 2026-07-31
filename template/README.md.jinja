@@ -2,8 +2,9 @@
 
 {{ description }}
 
-A **meta repo**: `mani.yaml` declares the sub-repos, [mise](https://mise.jdx.dev)
-runs the tasks{% if use_fnox %}, and [fnox](https://github.com/jdx/fnox) holds the secrets{% endif %}.
+A **meta repo**: [mani](https://manicli.com) manages the sub-repos and their
+cross-repo tasks, [mise](https://mise.jdx.dev) pins the tools and runs meta-level
+tasks{% if use_fnox %}, and [fnox](https://github.com/jdx/fnox) holds the secrets{% endif %}.
 
 ## Setup
 
@@ -29,16 +30,33 @@ mise run sync
 
 ## Tasks
 
-| Task | Does |
-|------|------|
-| `mise run hello` | Print Hello World |
-| `mise run sync` | Clone sub-repos, update `.gitignore` **and** `.ignore` |
-| `mise run status` | `git status` across all sub-repos |
-| `mise run pull` | `git pull --ff-only` across all sub-repos |
+Tasks that run **inside each repo** are declared in `mani.yaml`; **meta-level**
+tasks live in `mise.toml`. `mise run` wraps the former so there's one entry point.
+
+| Task | Defined in | Does |
+|------|-----------|------|
+| `mise run sync` | mise | Clone sub-repos, update `.gitignore` **and** `.ignore` |
+| `mise run hello` | mani | Print Hello World in every repo |
+| `mise run status` | mani | `git status --short` across all sub-repos |
+| `mise run pull` | mani | `git pull --ff-only` across all sub-repos |
+| `mise run tasks` | mise | List the cross-repo tasks |
 {%- if use_fnox %}
-| `mise run secrets` | List secrets in `fnox.toml` |
-| `mise run check-secrets` | Verify every secret resolves |
+| `mise run secrets` | mise | List secrets in `fnox.toml` |
+| `mise run check-secrets` | mise | Verify every secret resolves |
 {%- endif %}
+
+Because the cross-repo tasks are native mani tasks, you can also target and
+parallelise them directly:
+
+```sh
+mani run status --all --parallel
+mani run pull --tags active
+mani run status --paths courses
+mani tui
+```
+
+Add a new cross-repo task under `tasks:` in `mani.yaml` (`desc` + `cmd`); add a
+meta-level one to `mise.toml`.
 
 ## Adding a sub-repo
 
