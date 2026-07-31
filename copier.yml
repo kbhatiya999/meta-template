@@ -1,0 +1,28 @@
+_subdirectory: template
+
+_message_after_copy: |
+  Meta repo "{{ repo_name }}" created.
+
+  Next steps:
+    mise install          # install mani, fnox
+    mani sync             # clone sub-repos listed in mani.yaml
+    mise run hello        # verify task runner
+
+github_user:
+  type: str
+  help: GitHub username or org that owns this meta repo
+
+repo_name:
+  type: str
+  help: Name of this meta repo
+  default: "{{ github_user }}-meta"
+
+description:
+  type: str
+  help: Short description of what this meta repo tracks
+  default: "Meta repo for {{ github_user }}'s projects"
+
+use_fnox:
+  type: bool
+  help: Include fnox for secret/env management?
+  default: true

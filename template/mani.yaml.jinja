@@ -1,0 +1,13 @@
+projects:
+  {{ repo_name }}:
+    path: .
+    url: https://github.com/{{ github_user }}/{{ repo_name }}.git
+
+  # Add sub-repos here. `mani sync` clones them and maintains the
+  # "# mani #" block in .gitignore; `mise run sync` mirrors that block
+  # into .ignore so they stay out of editor search too.
+  #
+  # example-repo:
+  #   path: example-repo
+  #   url: https://github.com/{{ github_user }}/example-repo.git
+  #   tags: [active]

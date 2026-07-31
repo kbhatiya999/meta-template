@@ -1,0 +1,79 @@
+# {{ repo_name }}
+
+{{ description }}
+
+A **meta repo**: `mani.yaml` declares the sub-repos, [mise](https://mise.jdx.dev)
+runs the tasks{% if use_fnox %}, and [fnox](https://github.com/jdx/fnox) holds the secrets{% endif %}.
+
+## Setup
+
+```sh
+git init
+git remote add origin https://github.com/{{ github_user }}/{{ repo_name }}.git
+git fetch
+git checkout -f main
+```
+
+Install [mise](https://mise.jdx.dev), then the pinned tools:
+
+```sh
+curl https://mise.run | sh
+mise install
+```
+
+Clone the sub-repos:
+
+```sh
+mise run sync
+```
+
+## Tasks
+
+| Task | Does |
+|------|------|
+| `mise run hello` | Print Hello World |
+| `mise run sync` | Clone sub-repos, update `.gitignore` **and** `.ignore` |
+| `mise run status` | `git status` across all sub-repos |
+| `mise run pull` | `git pull --ff-only` across all sub-repos |
+{%- if use_fnox %}
+| `mise run secrets` | List secrets in `fnox.toml` |
+| `mise run check-secrets` | Verify every secret resolves |
+{%- endif %}
+
+## Adding a sub-repo
+
+Add it under `projects:` in `mani.yaml`, then:
+
+```sh
+mise run sync
+```
+
+## Why both `.gitignore` and `.ignore`
+
+`.gitignore` decides what **isn't committed**. `.ignore` decides what **isn't
+searchable** in the editor. Both carry the same body plus the same `# mani #`
+block, on the rule *what needn't be committed needn't be searchable*.
+
+`.ignore` additionally opens with `!*` / `!*/` so the editor re-includes
+everything git hid, before the shared body narrows it back down.
+
+`mani sync` only maintains the block in `.gitignore` — `mise run sync` wraps it
+and mirrors the block into `.ignore`, so use that rather than `mani sync`
+directly.
+{%- if use_fnox %}
+
+## Secrets
+
+`fnox.toml` is committed; values are encrypted at rest. Plaintext `.env` is
+ignored by both files.
+
+```sh
+fnox set MY_SECRET value
+fnox exec -- some-command   # runs with secrets in the environment
+```
+{%- endif %}
+
+---
+
+Generated from [{{ github_user }}/meta-template](https://github.com/{{ github_user }}/meta-template).
+Update with `copier update`.

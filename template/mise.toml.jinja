@@ -1,0 +1,49 @@
+[tools]
+mani = "latest"
+{%- if use_fnox %}
+fnox = "latest"
+{%- endif %}
+
+[tasks.hello]
+description = "Print Hello World"
+run = "echo 'Hello World'"
+
+[tasks.sync]
+description = "Clone sub-repos and mirror the mani block into .ignore"
+run = '''
+set -euo pipefail
+
+mani sync
+
+# `mani sync` only maintains the "# mani #" block in .gitignore. Mirror that
+# block into .ignore so cloned sub-repos are excluded from editor search too:
+# what isn't committed isn't searchable.
+block=$(awk '/^# mani #$/{f=!f; next} f' .gitignore)
+
+{
+  awk '/^# mani #$/{exit} {print}' .ignore
+  echo '# mani #'
+  if [ -n "$block" ]; then printf '%s\n' "$block"; fi
+  echo '# mani #'
+} > .ignore.tmp && mv .ignore.tmp .ignore
+
+echo "synced $(printf '%s' "$block" | grep -c . || true) sub-repo(s) into .gitignore and .ignore"
+'''
+
+[tasks.status]
+description = "Show git status across all sub-repos"
+run = "mani exec --all 'git status --short'"
+
+[tasks.pull]
+description = "Pull latest for all sub-repos"
+run = "mani exec --all 'git pull --ff-only'"
+{%- if use_fnox %}
+
+[tasks.secrets]
+description = "List secrets defined in fnox.toml"
+run = "fnox list"
+
+[tasks.check-secrets]
+description = "Verify every secret in fnox.toml resolves"
+run = "fnox check"
+{%- endif %}

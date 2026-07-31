@@ -1,0 +1,20 @@
+# fnox.toml — env/secret management for {{ repo_name }}.
+#
+# This file IS committed: values are encrypted at rest by the configured
+# provider. Plaintext .env stays gitignored (and therefore unsearchable).
+#
+#   fnox set MY_SECRET <value>   add a secret
+#   fnox list                    list secrets      (mise run secrets)
+#   fnox check                   verify resolution (mise run check-secrets)
+#   fnox exec -- <command>       run with secrets in the environment
+#
+# Encrypt with age — generate a key first:
+#   age-keygen -o ~/.config/fnox/age.key
+#
+# [providers.age]
+# type = "age"
+# recipients = ["age1..."]
+#
+# [secrets.MY_SECRET]
+# provider = "age"
+# value = "<encrypted>"
