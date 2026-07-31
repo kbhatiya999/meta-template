@@ -31,4 +31,6 @@ tasks:
 
   branch:
     desc: Show current branch
-    cmd: git rev-parse --abbrev-ref HEAD
+    # --show-current over `rev-parse --abbrev-ref HEAD`: doesn't fail on a
+    # freshly-init'd repo that has no commits yet.
+    cmd: git branch --show-current
