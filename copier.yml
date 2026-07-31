@@ -4,9 +4,11 @@ _message_after_copy: |
   Meta repo "{{ repo_name }}" created.
 
   Next steps:
-    mise install          # install mani, fnox
-    mani sync             # clone sub-repos listed in mani.yaml
-    mise run hello        # verify task runner
+    mise install       # install pinned tools
+    mise run sync      # clone sub-repos, update .gitignore AND .ignore
+    mise run hello     # verify task runner
+
+  Use `mise run sync` rather than `mani sync` — mani only updates .gitignore.
 
 github_user:
   type: str
