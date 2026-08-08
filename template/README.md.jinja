@@ -10,7 +10,7 @@ tasks{% if use_fnox %}, and [fnox](https://github.com/jdx/fnox) holds the secret
 
 ```sh
 git init
-git remote add origin https://github.com/{{ github_user }}/{{ repo_name }}.git
+git remote add origin https://github.com/{{ github_slug }}.git
 git fetch
 git checkout -f main
 ```
@@ -93,5 +93,5 @@ fnox exec -- some-command   # runs with secrets in the environment
 
 ---
 
-Generated from [{{ github_user }}/meta-template](https://github.com/{{ github_user }}/meta-template).
+Generated from [kbhatiya999/meta-template](https://github.com/kbhatiya999/meta-template).
 Update with `copier update`.

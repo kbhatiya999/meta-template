@@ -24,12 +24,15 @@ copier update
 
 ## Questions
 
-| Question | Default |
-|----------|---------|
-| `github_user` | — |
-| `repo_name` | `{{ github_user }}-meta` |
-| `description` | `Meta repo for {{ github_user }}'s projects` |
-| `use_fnox` | `true` |
+| Question | Default | Notes |
+|----------|---------|-------|
+| `github_slug` | — | `owner/repo` where this meta repo lives, e.g. `kbhatiya999/kn-courses-meta`. Validated against `owner/repo`. |
+| `description` | `<repo> meta repo` | Free text. |
+| `use_fnox` | `true` | Include fnox + its tasks. |
+
+`owner` and `repo_name` are derived from `github_slug` (not asked). A meta repo
+only needs to know where *it* lives — the repos it holds carry their own owners
+in their per-project `url:` lines.
 
 ## What it generates
 

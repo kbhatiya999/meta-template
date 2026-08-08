@@ -1,14 +1,15 @@
 projects:
   {{ repo_name }}:
     path: .
-    url: https://github.com/{{ github_user }}/{{ repo_name }}.git
+    url: https://github.com/{{ github_slug }}.git
 
-  # Add sub-repos here, then run `mise run sync` (not `mani sync` — only the
-  # wrapper mirrors the "# mani #" block into .ignore as well as .gitignore).
+  # Add the repos this meta repo holds here, then run `mise run sync` (not
+  # `mani sync` — only the wrapper mirrors the "# mani #" block into .ignore as
+  # well as .gitignore). Each held repo carries its own owner in its url.
   #
   # example-repo:
   #   path: example-repo
-  #   url: https://github.com/{{ github_user }}/example-repo.git
+  #   url: https://github.com/{{ owner }}/example-repo.git
   #   tags: [active]
 
 # Tasks that run *inside each project* belong here, so they keep mani's

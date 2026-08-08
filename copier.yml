@@ -10,19 +10,34 @@ _message_after_copy: |
 
   Use `mise run sync` rather than `mani sync` — mani only updates .gitignore.
 
-github_user:
+# A meta repo is a container: its job is to HOLD other repos. The only thing it
+# needs to know about itself is where it lives — owner/repo — which becomes its
+# self-entry URL in mani.yaml and the `git remote add origin` in the README.
+# The repos it holds carry their own owners/URLs, added per-project in mani.yaml.
+github_slug:
   type: str
-  help: GitHub username or org that owns this meta repo
+  help: "owner/repo where THIS meta repo lives (e.g. kbhatiya999/kn-courses-meta)"
+  placeholder: "owner/repo"
+  validator: >-
+    {% if not (github_slug | regex_search('^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$')) %}
+    Must be owner/repo, e.g. kbhatiya999/kn-courses-meta
+    {% endif %}
+
+# Derived from the slug — never asked, but recorded and usable in templates.
+owner:
+  type: str
+  when: false
+  default: "{{ github_slug.split('/')[0] }}"
 
 repo_name:
   type: str
-  help: Name of this meta repo
-  default: "{{ github_user }}-meta"
+  when: false
+  default: "{{ github_slug.split('/')[1] }}"
 
 description:
   type: str
   help: Short description of what this meta repo tracks
-  default: "Meta repo for {{ github_user }}'s projects"
+  default: "{{ repo_name }} meta repo"
 
 use_fnox:
   type: bool
