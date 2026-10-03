@@ -1,0 +1,56 @@
+# AGENTS.md
+
+{{ description }}
+
+`{{ repo_name }}` is a **meta repo**: it holds other repos rather than code of its
+own. Read this before touching anything.
+
+## Layout
+
+- `mani.yaml` — the list of sub-repos (`projects:`) and cross-repo tasks (`tasks:`).
+- `mise.toml` — pinned tools and meta-level tasks.
+- `.gitignore` / `.ignore` — both carry a `# mani #` block listing cloned sub-repos.
+  Never edit inside that block by hand; `mise run sync` regenerates it.
+{%- if use_fnox %}
+- `fnox.toml` — encrypted secrets. Committed; values are encrypted at rest.
+{%- endif %}
+- Sub-repos live in their own directories, are **gitignored**, and each has its
+  own git history and remote.
+
+## Rules
+
+1. **Use `mise run sync`, never `mani sync`.** mani only updates `.gitignore`;
+   the wrapper also mirrors the block into `.ignore`.
+2. **Sub-repos are separate repositories.** Commit, branch and push inside the
+   sub-repo, not here. Changes to a sub-repo never show up in this repo's `git status`.
+3. **Don't search or edit sub-repos unless the task is about them.** They are
+   excluded from `.ignore` on purpose.
+4. **Add a sub-repo** by adding an entry under `projects:` in `mani.yaml`
+   (each carries its own owner in its `url`), then run `mise run sync`.
+5. **Cross-repo tasks** (run inside every repo) go under `tasks:` in `mani.yaml`
+   with `desc` + `cmd`. **Meta-level tasks** go in `mise.toml`.
+{%- if use_fnox %}
+6. **Secrets go through fnox**, never plaintext. `.env` and `.env.local` are
+   gitignored; don't commit them or print secret values.
+{%- endif %}
+
+## Commands
+
+```sh
+mise install                      # install pinned tools
+mise run sync                     # clone sub-repos, update .gitignore and .ignore
+mise run status                   # git status --short across all sub-repos
+mise run pull                     # git pull --ff-only across all sub-repos
+mise run tasks                    # list cross-repo tasks
+mani run <task> --all --parallel  # run a cross-repo task directly
+mani run <task> --tags <tag>      # ...or target a subset
+{%- if use_fnox %}
+mise run check-secrets            # verify every secret in fnox.toml resolves
+{%- endif %}
+```
+
+## Template
+
+Generated from [kbhatiya999/harbor](https://github.com/kbhatiya999/harbor). Pull
+template updates with `copier update`; don't hand-edit generated files in ways
+that will conflict with it unless necessary.

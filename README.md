@@ -1,7 +1,7 @@
-# meta-template
+# harbor
 
 [Copier](https://copier.readthedocs.io) template for **meta repos** — repos whose
-job is to manage a set of other repos.
+job is to manage a set of other repos. Part of [The Helping Hand](https://github.com/kbhatiya999).
 
 Any repo with a `mani.yaml` is a meta repo. This template scaffolds one with
 [mani](https://manicli.com) for repo management, [mise](https://mise.jdx.dev) as
@@ -9,8 +9,38 @@ task runner, and [fnox](https://github.com/jdx/fnox) for secrets.
 
 ## Use
 
+**Guided setup (recommended):**
+
+Four prompts (slug, description, fnox, directory), then it installs what's
+missing and scaffolds the repo. Pick whichever runtime you already have; all
+three behave identically:
+
 ```sh
-copier copy gh:kbhatiya999/meta-template my-new-meta
+uvx harbor-meta                                  # Python (uv)
+npx @kbhatiya999/harbor                          # Node
+go run github.com/kbhatiya999/harbor@latest      # Go
+
+# No runtime? One-liner downloads a pre-built binary:
+bash <(curl -fsSL https://raw.githubusercontent.com/kbhatiya999/harbor/main/setup.sh)
+
+# Windows PowerShell:
+irm https://raw.githubusercontent.com/kbhatiya999/harbor/main/setup.ps1 | iex
+```
+
+The setup scripts auto-detect the runtime (`uvx` → `npx` → `go run` → binary download).
+
+**Install permanently** (so `harbor` works anywhere):
+
+```sh
+uv tool install harbor-meta                      # Python
+npm install -g @kbhatiya999/harbor               # Node
+go install github.com/kbhatiya999/harbor@latest  # Go
+```
+
+**Manual setup:**
+
+```sh
+copier copy gh:kbhatiya999/harbor my-new-meta
 cd my-new-meta
 mise install
 mise run sync
@@ -54,3 +84,11 @@ narrows it back down.
 
 `mani sync` only writes the block into `.gitignore`, so the generated `sync` task
 wraps it and mirrors the block into `.ignore`.
+
+## Releasing
+
+Push a tag such as `v0.2.0`; `.github/workflows/release.yml` publishes the Go
+binaries (GitHub release + Go module proxy), the PyPI package `harbor-meta`
+and the npm package `@kbhatiya999/harbor`, all versioned from the tag. One-time
+setup: add a PyPI trusted publisher for this repo/workflow (environment
+`pypi`) and an `NPM_TOKEN` repo secret.
