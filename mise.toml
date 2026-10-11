@@ -14,7 +14,7 @@ description = "Install this checkout as an editable uv tool: the released packag
 run = '''
 set -eu
 name=$(sed -n 's/^name = "\(.*\)"$/\1/p' pyproject.toml | head -1)
-uv tool install --editable . --force --quiet
+uv tool install --editable . --force --reinstall-package "$name" --quiet  # rebuild, so the version is current
 echo "Installed $name from $PWD (editable)"
 uv tool list | awk -v n="$name" '$1 == n {p=1; print; next} p && /^- / {print; next} {p=0}'
 echo
