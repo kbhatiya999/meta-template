@@ -1,28 +1,36 @@
 name: Release
 
-# Release harbor and the template together, without picking a version:
-#   gh workflow run release.yml
-# The version is today's date, vYYYY.M.D, with .1, .2 … for extra releases the
-# same day, so it always increases (and sorts above the old v2.0.0 tags).
-# Each harbor release renders the template tag with its own version.
-# One-time setup for PyPI: add this repo + workflow (environment "pypi") as a
-# trusted publisher for harbor-meta.
+# Release harbor and the template together:
+#   1. describe the changes under "## [Unreleased]" in CHANGELOG.md and push
+#   2. gh workflow run release.yml
+#
+# The version is today's date, YYYY.M.D, with .1, .2 … for further releases the
+# same day, so it always increases. The job publishes to PyPI first and only then
+# commits the changelog, tags and creates the GitHub release, so a failed publish
+# leaves nothing behind. Each harbor release renders the template tag with its
+# own version.
+#
+# One-time setup: a PyPI trusted publisher for harbor-meta with this repo,
+# workflow release.yml and environment pypi.
 
 on:
   workflow_dispatch:
 
-permissions:
-  contents: write
+concurrency: release
 
 jobs:
-  tag:
+  release:
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.v.outputs.version }}
+    environment: pypi
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v5
 
       - name: Next date version
         id: v
@@ -32,30 +40,26 @@ jobs:
           while git rev-parse -q --verify "refs/tags/v$v" >/dev/null; do n=$((n+1)); v="$base.$n"; done
           echo "version=$v" >> "$GITHUB_OUTPUT"
 
-      - name: Tag and create GitHub release
+      - name: Cut the changelog entry
+        run: python3 .github/scripts/changelog.py "${{ steps.v.outputs.version }}" "$RUNNER_TEMP/notes.md" "${{ github.repository }}"
+
+      - name: Build
+        run: |
+          sed -i 's/^version = .*/version = "${{ steps.v.outputs.version }}"/' pyproject.toml
+          uv build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Commit changelog, tag, create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          V: ${{ steps.v.outputs.version }}
         run: |
-          git tag "v${{ steps.v.outputs.version }}"
-          git push origin "v${{ steps.v.outputs.version }}"
-          gh release create "v${{ steps.v.outputs.version }}" --generate-notes
-
-  pypi:
-    needs: tag
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: v${{ needs.tag.outputs.version }}
-
-      - uses: astral-sh/setup-uv@v5
-
-      - name: Set version
-        run: sed -i 's/^version = .*/version = "${{ needs.tag.outputs.version }}"/' pyproject.toml
-
-      - run: uv build
-
-      - uses: pypa/gh-action-pypi-publish@release/v1
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "Release v$V"
+          git tag "v$V"
+          git push origin HEAD:main "v$V"
+          gh release create "v$V" --title "harbor $V" --notes-file "$RUNNER_TEMP/notes.md" dist/*

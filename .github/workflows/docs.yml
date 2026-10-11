@@ -1,0 +1,56 @@
+name: Docs
+
+# Builds the MkDocs site and publishes it to GitHub Pages.
+# Needs Settings → Pages → Source: GitHub Actions.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/**
+      - mkdocs.yml
+      - CHANGELOG.md
+      - pyproject.toml
+      - .github/workflows/docs.yml
+  # The release workflow's changelog commit is pushed with GITHUB_TOKEN, which
+  # doesn't trigger push workflows, so rebuild after every release too.
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Build site
+        run: uv run --only-group docs mkdocs build --strict
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

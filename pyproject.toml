@@ -6,14 +6,36 @@ build-backend = "hatchling.build"
 name = "harbor-meta"
 version = "0.0.0"  # set from the release tag (vYYYY.M.D[.N]) by CI
 description = "One tree of meta repos per GitHub account; every repo cloned exactly once"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.9"
+keywords = ["meta repo", "multi-repo", "mani", "copier", "mise", "git"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Version Control :: Git",
+]
 dependencies = [
     "copier>=9",
     "pyyaml>=6",
 ]
 
+[project.urls]
+Homepage = "https://kbhatiya999.github.io/meta-template/"
+Documentation = "https://kbhatiya999.github.io/meta-template/"
+Changelog = "https://github.com/kbhatiya999/meta-template/blob/main/CHANGELOG.md"
+Repository = "https://github.com/kbhatiya999/meta-template"
+Issues = "https://github.com/kbhatiya999/meta-template/issues"
+Releases = "https://github.com/kbhatiya999/meta-template/releases"
+
 [project.scripts]
 harbor = "harbor.main:main"
+harbor-meta = "harbor.main:main"  # so `uvx harbor-meta` works without --from
+
+[dependency-groups]
+docs = ["mkdocs-material>=9.5", "mkdocs>=1.6,<2"]  # MkDocs 2 drops plugin/theme support Material needs
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/harbor"]

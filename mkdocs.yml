@@ -1,0 +1,61 @@
+site_name: harbor
+site_description: One tree of meta repos per GitHub account, with every repo cloned exactly once.
+site_url: https://kbhatiya999.github.io/meta-template/
+repo_url: https://github.com/kbhatiya999/meta-template
+repo_name: kbhatiya999/meta-template
+edit_uri: edit/main/docs/
+copyright: Part of The Helping Hand
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.instant
+    - content.code.copy
+    - content.action.edit
+    - search.highlight
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Concepts: concepts.md
+  - Commands: commands.md
+  - Updating: updating.md
+  - The template: template.md
+  - Troubleshooting: troubleshooting.md
+  - Releasing: releasing.md
+  - Changelog: changelog.md
