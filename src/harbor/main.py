@@ -558,8 +558,10 @@ def adopt(path: Path):
     url = origin(path) or die(f"{show(path)} has no origin remote")
     slug = slug_of(url) or die(f"{url} isn't a GitHub remote")
     if (path / ANSWERS).exists():
-        print(f"✓ {show(path)} is already adopted (template updates: copier update)")
+        print(f"✓ {show(path)} is already adopted (template updates: harbor sync)")
         return
+    if state(path).changed:
+        die(f"{show(path)} has uncommitted changes; commit or stash them, then adopt")
     skip = [f for f in TEMPLATE_FILES if (path / f).exists()]
     copier(path, slug, skip=skip)
     write_ignores(load(path))
