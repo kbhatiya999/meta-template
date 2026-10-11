@@ -1,5 +1,19 @@
 _subdirectory: template
 
+# Files that are yours once created: the template seeds them, never updates them,
+# so `copier update` / `harbor sync` can't conflict with your edits. `keep` adds
+# template-managed files to that list (harbor adopt records the ones a repo
+# already had).
+_skip_if_exists:
+  - mani.yaml
+  - README.md
+  - .gitignore
+  - .ignore
+  - fnox.toml
+  - "{% if 'mise.toml' in keep %}mise.toml{% endif %}"
+  - "{% if 'AGENTS.md' in keep %}AGENTS.md{% endif %}"
+  - "{% if 'CLAUDE.md' in keep %}CLAUDE.md{% endif %}"
+
 _message_after_copy: |
   Meta repo "{{ repo_name }}" created.
 
@@ -43,3 +57,8 @@ use_fnox:
   type: bool
   help: Include fnox for secret/env management?
   default: true
+
+keep:
+  type: yaml
+  help: "Template-managed files that stay yours (any of mise.toml, AGENTS.md, CLAUDE.md)"
+  default: []

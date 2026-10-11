@@ -4,10 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "harbor-meta"
-version = "0.1.0"
-description = "Scaffold a meta repo (mani · mise · copier)"
+version = "0.0.0"  # set from the release tag (vYYYY.M.D[.N]) by CI
+description = "One tree of meta repos per GitHub account; every repo cloned exactly once"
 requires-python = ">=3.9"
-dependencies = []
+dependencies = [
+    "copier>=9",
+    "pyyaml>=6",
+]
 
 [project.scripts]
 harbor = "harbor.main:main"

@@ -36,8 +36,16 @@ own. Read this before touching anything.
 
 ## Commands
 
+Prefer `harbor` (`uvx harbor-meta`) for anything that adds or clones repos: it
+refuses to clone a repo that already exists anywhere under the root, and runs as
+this root's GitHub account.
+
 ```sh
-mise install                      # install pinned tools
+harbor                            # what exists, where, and changed/unpushed/behind
+harbor sync                       # clone missing, fetch all, rebase clean branches
+harbor add owner/repo             # add a repo here (or a path: moves an existing clone in)
+harbor new <name>                 # create a nested meta repo, refusing duplicates
+mise install                     # install pinned tools
 mise run sync                     # clone sub-repos, update .gitignore and .ignore
 mise run status                   # git status --short across all sub-repos
 mise run pull                     # git pull --ff-only across all sub-repos
@@ -51,6 +59,6 @@ mise run check-secrets            # verify every secret in fnox.toml resolves
 
 ## Template
 
-Generated from [kbhatiya999/harbor](https://github.com/kbhatiya999/harbor). Pull
+Generated from [kbhatiya999/meta-template](https://github.com/kbhatiya999/meta-template). Pull
 template updates with `copier update`; don't hand-edit generated files in ways
 that will conflict with it unless necessary.
