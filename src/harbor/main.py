@@ -460,7 +460,7 @@ def cmd_status(args):
                 print(f"    {show(p):<38} {where} · {state(p)}")
     if args.offline:
         print("\n(offline: ahead/behind are as of the last fetch)")
-    elif (latest := latest_release()) and vkey(latest) > vkey(version()):
+    elif not version().startswith("0") and (latest := latest_release()) and vkey(latest) > vkey(version()):
         print(f"\nharbor {latest[1:]} is out (you have {version()}). "
               f"Upgrade: uv tool upgrade harbor-meta, then harbor sync updates every meta repo.")
 
