@@ -9,6 +9,8 @@ day) from 2026.10.11 on; earlier template-only releases used semantic versions.
 
 ## [Unreleased]
 
+## [2026.10.11.2] - 2026-10-11
+
 ### Added
 
 - Documentation site at <https://kbhatiya999.github.io/meta-template/>, with screenshots
@@ -95,7 +97,8 @@ cloned exactly once. Not published to PyPI.
 
 - Copier template for meta repos with mani, mise and fnox.
 
-[Unreleased]: https://github.com/kbhatiya999/meta-template/compare/v2026.10.11.1...HEAD
+[Unreleased]: https://github.com/kbhatiya999/meta-template/compare/v2026.10.11.2...HEAD
+[2026.10.11.2]: https://github.com/kbhatiya999/meta-template/compare/v2026.10.11.1...v2026.10.11.2
 [2026.10.11.1]: https://github.com/kbhatiya999/meta-template/compare/v2026.10.11...v2026.10.11.1
 [2026.10.11]: https://github.com/kbhatiya999/meta-template/compare/v2.0.0...v2026.10.11
 [2.0.0]: https://github.com/kbhatiya999/meta-template/compare/v1.1.0...v2.0.0
