@@ -9,6 +9,24 @@ day) from 2026.10.11 on; earlier template-only releases used semantic versions.
 
 ## [Unreleased]
 
+### Added
+
+- `mise run dev` installs a checkout as an editable uv tool: the same package and
+  commands users get, running the checkout's code. An editable harbor renders the
+  checkout's committed template, so `harbor sync` brings your own meta repos onto it.
+- Developer tasks in `mise.toml` (`dev`, `build`, `docs`, `release`), written so they
+  can be reused in other uv-packaged CLIs, and a [Developing](https://kbhatiya999.github.io/meta-template/developing/) guide.
+
+### Changed
+
+- The package version comes from git tags (hatch-vcs): a release is `2026.10.11.2`,
+  and a build after it is `2026.10.11.2.postN.devM+g<hash>`.
+
+### Fixed
+
+- A template update that copier can't apply is rolled back and reported, instead of
+  stopping `harbor sync` with an error.
+
 ## [2026.10.11.2] - 2026-10-11
 
 ### Added

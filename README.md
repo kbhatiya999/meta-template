@@ -71,7 +71,12 @@ copier copy gh:kbhatiya999/meta-template my-meta
 
 ## Contributing
 
-Releases are cut from `CHANGELOG.md` with `gh workflow run release.yml`. See
+```sh
+mise run dev      # install your checkout as an editable uv tool
+mise run release  # publish the next version from CHANGELOG.md
+```
+
+See [Developing](https://kbhatiya999.github.io/meta-template/developing/) and
 [Releasing](https://kbhatiya999.github.io/meta-template/releasing/).
 
 ## License

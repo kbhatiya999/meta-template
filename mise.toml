@@ -1,0 +1,57 @@
+# Developer tasks for a uv-packaged CLI. Nothing here names this project, so the
+# file works as-is in any repo with a pyproject.toml that uses hatch-vcs (see
+# [tool.hatch.version] there) and the release workflow in .github/workflows.
+#
+#   mise run dev        install this checkout as your own copy of the tool
+#   mise run release    publish the next version (CI does the work)
+#   mise tasks          list everything
+
+[tools]
+uv = "latest"
+
+[tasks.dev]
+description = "Install this checkout as an editable uv tool: the released package and commands, running your code"
+run = '''
+set -eu
+name=$(sed -n 's/^name = "\(.*\)"$/\1/p' pyproject.toml | head -1)
+uv tool install --editable . --force --quiet
+echo "Installed $name from $PWD (editable)"
+uv tool list | awk -v n="$name" '$1 == n {p=1; print; next} p && /^- / {print; next} {p=0}'
+echo
+echo "Code changes apply on the next run. Run 'mise run dev' again after a release,"
+echo "a pull, or a dependency change, to refresh the version and dependencies."
+'''
+
+[tasks.undev]
+description = "Uninstall the editable tool"
+run = '''
+name=$(sed -n 's/^name = "\(.*\)"$/\1/p' pyproject.toml | head -1)
+uv tool uninstall "$name"
+'''
+
+[tasks.build]
+description = "Build the sdist and wheel into dist/ and check them as PyPI would"
+run = ["rm -rf dist", "uv build --quiet", "uvx --quiet twine check dist/*"]
+
+[tasks.docs]
+description = "Serve the documentation site locally with live reload"
+run = "uv run --only-group docs mkdocs serve"
+
+[tasks.docs-build]
+description = "Build the documentation site the way CI does (fails on warnings)"
+run = "uv run --only-group docs mkdocs build --strict"
+
+[tasks.release]
+description = "Publish the next date version: needs an entry under ## [Unreleased] in CHANGELOG.md, pushed"
+run = '''
+set -eu
+if [ -n "$(git status --porcelain)" ] || [ "$(git rev-parse HEAD)" != "$(git rev-parse @{u})" ]; then
+  echo "Commit and push first: the release is built from what's on GitHub." >&2
+  exit 1
+fi
+gh workflow run release.yml
+sleep 3
+gh run watch "$(gh run list --workflow release.yml --limit 1 --json databaseId --jq '.[0].databaseId')" --exit-status
+git pull --quiet
+mise run dev
+'''

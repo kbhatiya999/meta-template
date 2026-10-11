@@ -27,10 +27,16 @@ import yaml
 
 # Maintainers: change these defaults for your users. The env vars exist for tests.
 BASE = Path(os.environ.get("HARBOR_BASE", "~/repo")).expanduser().resolve()
-TEMPLATE = os.environ.get("HARBOR_TEMPLATE", "gh:kbhatiya999/meta-template")
+RELEASED_TEMPLATE = "gh:kbhatiya999/meta-template"
+
+# Installed editable from a checkout (mise run dev): render that checkout's committed
+# template, so the developer uses what they're about to release.
+CHECKOUT = Path(__file__).resolve().parents[2]
+EDITABLE = (CHECKOUT / "copier.yml").exists() and (CHECKOUT / ".git").exists()
+TEMPLATE = os.environ.get("HARBOR_TEMPLATE") or (str(CHECKOUT) if EDITABLE else RELEASED_TEMPLATE)
 
 ANSWERS = ".copier-answers.yml"
-TEMPLATE_GIT = re.sub(r"^gh:", "https://github.com/", TEMPLATE)
+RELEASES_GIT = re.sub(r"^gh:", "https://github.com/", RELEASED_TEMPLATE)
 TEMPLATE_FILES = ["README.md", "mani.yaml", "mise.toml", ".gitignore", ".ignore",
                   "AGENTS.md", "CLAUDE.md", "fnox.toml"]
 TEMPLATE_MANAGED = ["mise.toml", "AGENTS.md", "CLAUDE.md"]  # the rest are yours once created
@@ -91,7 +97,8 @@ def is_clone(path: Path) -> bool:
 
 # ── versions ──────────────────────────────────────────────────────────────────
 # harbor and the template are released together as vYYYY.M.D[.N], so a harbor
-# release always renders the template tag with its own version.
+# release always renders the template tag with its own version. An editable
+# install renders its checkout at HEAD instead.
 
 def version() -> str:
     try:
@@ -100,16 +107,45 @@ def version() -> str:
         return "0"
 
 
+def released() -> bool:
+    """A published release (2026.10.11.2), not a dev build (….post1.dev0+g…)."""
+    return not EDITABLE and re.fullmatch(r"[\d.]+", version()) is not None
+
+
+def local_template() -> Path | None:
+    p = Path(TEMPLATE).expanduser()
+    return p if p.is_dir() else None
+
+
 def template_ref() -> str | None:
-    """The template tag this harbor renders; None means copier's latest tag (dev builds)."""
-    if ref := os.environ.get("HARBOR_TEMPLATE_REF"):
-        return ref
-    v = version()
-    return None if v.startswith("0") else f"v{v}"
+    """The --vcs-ref to render; None means copier's newest tag."""
+    ref = os.environ.get("HARBOR_TEMPLATE_REF") or ("HEAD" if EDITABLE else None)
+    if ref == "HEAD" and (p := local_template()):
+        # Pin the committed HEAD: given "HEAD", copier renders uncommitted changes
+        # as a throwaway commit that a later `copier update` can't find again.
+        return run(["git", "-C", p, "rev-parse", "HEAD"], check=False).stdout.strip() or ref
+    return ref or (f"v{version()}" if released() else None)
+
+
+def template_target() -> str | None:
+    """The _commit a meta repo has once it's on this harbor's template: the tag,
+    or for a checkout's commit what copier records, last tag + commits since it."""
+    ref = template_ref()
+    if ref and re.fullmatch(r"[0-9a-f]{40}", ref) and (p := local_template()):
+        r = run(["git", "-C", p, "describe", "--tags", "--long", "--match", "v[0-9]*", ref], check=False)
+        m = re.match(r"(v[\d.]+)-(\d+)-g[0-9a-f]+$", r.stdout.strip())
+        if not m:
+            return None
+        return m.group(1) if m.group(2) == "0" else f"{m.group(1)}-{m.group(2)}"
+    return ref
 
 
 def vkey(tag: str) -> tuple:
-    return tuple(int(x) for x in re.findall(r"\d+", tag))
+    """Order v2.0.0 < v2026.10.11 < v2026.10.11-3 (3 commits later) < v2026.10.11.1."""
+    m = re.match(r"v?(\d+(?:\.\d+)*)(?:-(\d+))?", tag or "")
+    if not m:
+        return ()
+    return (tuple(int(x) for x in m.group(1).split(".")), int(m.group(2) or 0))
 
 
 def template_commit(meta: Path) -> str | None:
@@ -118,7 +154,7 @@ def template_commit(meta: Path) -> str | None:
 
 
 def latest_release() -> str | None:
-    r = run(["git", "ls-remote", "--tags", "--refs", TEMPLATE_GIT], check=False)
+    r = run(["git", "ls-remote", "--tags", "--refs", RELEASES_GIT], check=False)
     tags = re.findall(r"refs/tags/(v[\d.]+)$", r.stdout, re.M)
     return max(tags, key=vkey) if tags else None
 
@@ -385,19 +421,24 @@ def copier(dest: Path, slug: str, desc: str | None = None, skip=()):
 
 def update_template(meta: Path) -> str | None:
     """Bring an adopted, clean meta repo to this harbor's template. Returns a message."""
-    have, want = template_commit(meta), template_ref()
-    if not have or not want or have == want or vkey(have) > vkey(want):
+    have, want = template_commit(meta), template_target()
+    if not have or not want or vkey(have) >= vkey(want):
         return None
     if state(meta).changed:
         return f"· template {have} → {want} waits: uncommitted changes"
-    run([sys.executable, "-m", "copier", "update", "--defaults", "--skip-answered",
-         "--conflict", "rej", "--vcs-ref", want], cwd=meta, check=False)
+    r = run([sys.executable, "-m", "copier", "update", "--defaults", "--skip-answered",
+             "--conflict", "rej", "--vcs-ref", template_ref()], cwd=meta, check=False)
     rejects = run(["git", "-C", meta, "ls-files", "--others", "--exclude-standard", "*.rej"]).stdout.split()
-    if rejects:
+    if r.returncode or rejects:
         run(["git", "-C", meta, "reset", "--hard", "--quiet"])
         run(["git", "-C", meta, "clean", "-fdq"])
-        return f"! template {have} → {want} conflicts with local edits; left as is (run copier update there)"
+        if rejects:
+            return f"! template {have} → {want} conflicts with local edits; left as is (run copier update there)"
+        err = (r.stderr or r.stdout).strip().splitlines()
+        return f"! template {have} → {want} failed, left as is: {err[-1] if err else 'copier update failed'}"
     run(["git", "-C", meta, "add", "-A"])
+    if not run(["git", "-C", meta, "diff", "--cached", "--quiet"], check=False).returncode:
+        return None  # already identical to the new template
     run(["git", "-C", meta, "commit", "--quiet", "-m", f"harbor: update template to {want}"])
     return f"✓ template {have} → {want}"
 
@@ -416,6 +457,8 @@ def cmd_status(args):
             accounts[t.path] = None
             print(e.code)
 
+    target = template_target()
+
     def line(n: Node, depth: int, acct):
         pad = "  " * depth
         label = n.name + ("/" if n.meta else "")
@@ -427,7 +470,7 @@ def cmd_status(args):
             info = str(state(n.path, acct, fetch=acct is not None))
             if n.meta and not (n.path / ANSWERS).exists():
                 info += " · not adopted → harbor adopt " + show(n.path)
-            elif n.meta and (want := template_ref()) and (have := template_commit(n.path)) \
+            elif n.meta and (want := target) and (have := template_commit(n.path)) \
                     and vkey(have) < vkey(want):
                 info += f" · template {have} → harbor sync updates it to {want}"
             if n.url and (o := origin(n.path)) and norm(o) != norm(n.url):
@@ -460,7 +503,7 @@ def cmd_status(args):
                 print(f"    {show(p):<38} {where} · {state(p)}")
     if args.offline:
         print("\n(offline: ahead/behind are as of the last fetch)")
-    elif not version().startswith("0") and (latest := latest_release()) and vkey(latest) > vkey(version()):
+    elif released() and (latest := latest_release()) and vkey(latest) > vkey(version()):
         print(f"\nharbor {latest[1:]} is out (you have {version()}). "
               f"Upgrade: uv tool upgrade harbor-meta, then harbor sync updates every meta repo.")
 
@@ -658,8 +701,11 @@ def cmd_sync(args):
 def main():
     p = argparse.ArgumentParser(
         prog="harbor",
-        description="One tree of meta repos per GitHub account; every repo cloned exactly once.")
-    p.add_argument("--version", action="version", version=f"harbor {version()} (template {template_ref() or 'latest tag'})")
+        description="One tree of meta repos per GitHub account; every repo cloned exactly once.",
+        formatter_class=argparse.RawDescriptionHelpFormatter)  # keeps --version on one line
+    where = (f"editable: {show(CHECKOUT)}, template {template_target()} = its committed HEAD" if EDITABLE
+             else f"template {template_ref() or 'latest tag'}")
+    p.add_argument("--version", action="version", version=f"harbor {version()} ({where})")
     sub = p.add_subparsers(dest="cmd", metavar="command")
 
     s = sub.add_parser("status", help="everything you have, where it lives, and whether it's safe to work on (default)")

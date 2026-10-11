@@ -57,5 +57,6 @@ nav:
   - Updating: updating.md
   - The template: template.md
   - Troubleshooting: troubleshooting.md
+  - Developing: developing.md
   - Releasing: releasing.md
   - Changelog: changelog.md

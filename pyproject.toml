@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "harbor-meta"
-version = "0.0.0"  # set from the release tag (vYYYY.M.D[.N]) by CI
+dynamic = ["version"]
 description = "One tree of meta repos per GitHub account; every repo cloned exactly once"
 readme = "README.md"
 license = "MIT"
@@ -36,6 +36,16 @@ harbor-meta = "harbor.main:main"  # so `uvx harbor-meta` works without --from
 
 [dependency-groups]
 docs = ["mkdocs-material>=9.5", "mkdocs>=1.6,<2"]  # MkDocs 2 drops plugin/theme support Material needs
+
+# The version comes from git: exactly the tag on a release (2026.10.11.2), and
+# <last tag>.postN.devM+g<hash> between releases, so a local install always says
+# which release it builds on. CI sets the release version explicitly.
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+version_scheme = "no-guess-dev"
+git_describe_command = ["git", "describe", "--dirty", "--tags", "--long", "--match", "v[0-9]*"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/harbor"]

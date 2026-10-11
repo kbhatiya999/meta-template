@@ -44,9 +44,10 @@ jobs:
         run: python3 .github/scripts/changelog.py "${{ steps.v.outputs.version }}" "$RUNNER_TEMP/notes.md" "${{ github.repository }}"
 
       - name: Build
-        run: |
-          sed -i 's/^version = .*/version = "${{ steps.v.outputs.version }}"/' pyproject.toml
-          uv build
+        env:
+          # hatch-vcs would derive a .dev version: the tag doesn't exist until publishing succeeds
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ steps.v.outputs.version }}
+        run: uv build
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

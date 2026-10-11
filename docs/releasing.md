@@ -17,9 +17,12 @@ template tags (`v1.0.0` … `v2.0.0`). Git tags carry a `v` prefix.
 2. Run:
 
     ```sh
-    gh workflow run release.yml
-    gh run watch
+    mise run release
     ```
+
+    This checks that everything is committed and pushed, starts the release workflow
+    (`gh workflow run release.yml`), waits for it, then pulls the release commit and
+    refreshes your editable install, so you end up on the version you just released.
 
 The workflow:
 
@@ -41,7 +44,7 @@ The docs site rebuilds after every release and on every push to `main`.
 ## Previewing the docs
 
 ```sh
-uv run --only-group docs mkdocs serve
+mise run docs
 ```
 
 ## Maintainer defaults
