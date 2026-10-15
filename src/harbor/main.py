@@ -60,8 +60,10 @@ def run(args, cwd=None, env=None, check=True) -> subprocess.CompletedProcess:
 
 
 def show(p: Path) -> str:
-    home = str(Path.home())
-    return "~" + str(p)[len(home):] if str(p).startswith(home) else str(p)
+    for home in {str(Path.home()), str(Path.home().resolve())}:  # home may be behind a symlink
+        if str(p) == home or str(p).startswith(home + "/"):
+            return "~" + str(p)[len(home):]
+    return str(p)
 
 
 def bare(url: str) -> str:

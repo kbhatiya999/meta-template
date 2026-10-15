@@ -1,0 +1,12 @@
+# Read by ripgrep-based search (agents' Grep/Glob, rg, Zed, VS Code). .gitignore
+# decides what's hidden; this file only re-includes gitignored things worth
+# searching. Anything not listed here stays hidden, fnox's local overrides
+# included, since they can hold secrets.
+
+# Shared working memory for agents and sessions
+!.scratch/
+
+# mise's local overrides: plain config, same patterns as in .gitignore
+!mise*.local.toml
+!.mise*.local.toml
+!**/mise/config*.local.toml

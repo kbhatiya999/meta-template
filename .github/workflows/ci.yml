@@ -1,0 +1,36 @@
+name: CI
+
+# Tests, package build and docs build on every push and pull request.
+# Run it locally in Docker: mise run ci-local
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the version comes from git tags
+
+      - uses: jdx/mise-action@v2
+        with:
+          install_args: uv
+
+      - name: End-to-end tests
+        run: mise run test
+
+      - name: Package build
+        run: mise run build
+
+      - name: Docs build
+        run: mise run docs-build

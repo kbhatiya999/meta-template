@@ -12,9 +12,18 @@ name: Release
 #
 # One-time setup: a PyPI trusted publisher for harbor-meta with this repo,
 # workflow release.yml and environment pypi.
+#
+# Dry run (on GitHub, or locally with `mise run release-dry-run`): version,
+# changelog and build only. Under act (ACT=true) it is always a dry run, so a
+# local run can never publish, push or release.
 
 on:
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Compute the version, cut the changelog and build, but publish, push and release nothing
+        type: boolean
+        default: false
 
 concurrency: release
 
@@ -50,9 +59,11 @@ jobs:
         run: uv build
 
       - name: Publish to PyPI
+        if: ${{ !inputs.dry_run && !env.ACT }}
         uses: pypa/gh-action-pypi-publish@release/v1
 
       - name: Commit changelog, tag, create GitHub release
+        if: ${{ !inputs.dry_run && !env.ACT }}
         env:
           GH_TOKEN: ${{ github.token }}
           V: ${{ steps.v.outputs.version }}
@@ -64,3 +75,13 @@ jobs:
           git tag "v$V"
           git push origin HEAD:main "v$V"
           gh release create "v$V" --title "harbor $V" --notes-file "$RUNNER_TEMP/notes.md" dist/*
+
+      - name: Dry run result
+        if: ${{ inputs.dry_run || env.ACT }}
+        env:
+          V: ${{ steps.v.outputs.version }}
+        run: |
+          echo "Would release v$V (nothing was published, pushed or released)"
+          ls dist
+          echo "--- release notes ---"
+          cat "$RUNNER_TEMP/notes.md"

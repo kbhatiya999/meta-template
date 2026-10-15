@@ -1,0 +1,7 @@
+# Copy to mise.local.toml (gitignored), then `mise trust mise.local.toml`.
+# Values live in fnox (fnox.toml, your overrides in fnox.local.toml); the only
+# thing mise sets is which fnox flavour every task and Tilt button uses.
+
+[env]
+# A profile defined in fnox.toml ([profiles.<name>.secrets]); unset = default.
+# FNOX_PROFILE = "scratch"

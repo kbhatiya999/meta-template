@@ -2,3 +2,16 @@
 site/
 dist/
 __pycache__/
+.scratch/
+
+# Per-machine overrides of mise and fnox config, in any of the names and places
+# they look: mise.local.toml, mise.<env>.local.toml, .config/mise/config.local.toml,
+# fnox.local.toml, fnox.<profile>.local.toml, their dot-prefixed forms, ...
+mise*.local.toml
+.mise*.local.toml
+**/mise/config*.local.toml
+fnox*.local.toml
+.fnox*.local.toml
+
+# Tilt runtime state (scripts/tilts --watch)
+.tilt-others.*

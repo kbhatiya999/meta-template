@@ -16,6 +16,22 @@ day) from 2026.10.11 on; earlier template-only releases used semantic versions.
   checkout's committed template, so `harbor sync` brings your own meta repos onto it.
 - Developer tasks in `mise.toml` (`dev`, `build`, `docs`, `release`), written so they
   can be reused in other uv-packaged CLIs, and a [Developing](https://kbhatiya999.github.io/meta-template/developing/) guide.
+- `mise run up`: a Tilt dashboard with every developer flow as a button, on its own
+  port so it never collides with another project's Tilt. A second dashboard for the
+  same repo, from any terminal or port, shows up red under "other tilts", with a
+  button to pick one and stop it.
+- Developer values in fnox: plain config and secrets in `fnox.toml`, per-machine
+  overrides in `fnox.local.toml`, flavours as fnox profiles picked with `FNOX_PROFILE`
+  in `mise.local.toml`. Tasks read them through `fnox exec`, Tilt starts with a nearly
+  empty environment, and changes apply without restarting it. Secrets are `env = "exec"`,
+  so shells never see them; `mise run secret-example` shows a per-task, redacted grant.
+  `mise run env` shows what tasks see.
+- `mise run test`: end-to-end tests in an offline sandbox with a fake `gh` and local
+  bare repos standing in for GitHub.
+- CI workflow: tests, package build and docs build on every push and pull request.
+- `mise run ci-local` and `mise run release-dry-run` run the GitHub workflows locally in
+  Docker with act; they stop with a hint when Docker/Colima isn't running.
+- Release workflow `dry_run` input. Runs under act are always dry runs.
 
 ### Changed
 
@@ -26,6 +42,7 @@ day) from 2026.10.11 on; earlier template-only releases used semantic versions.
 
 - A template update that copier can't apply is rolled back and reported, instead of
   stopping `harbor sync` with an error.
+- Paths under a home folder reached through a symlink are shown as `~/…`.
 
 ## [2026.10.11.2] - 2026-10-11
 

@@ -1,0 +1,15 @@
+# Copy to fnox.local.toml (gitignored, and hidden from search) for values on this
+# machine only. They apply on the next task run or Tilt click; only TILT_PORT
+# needs `mise run down` and `mise run up`.
+
+[secrets]
+# Point your harbor at a scratch tree instead of ~/repo:
+# HARBOR_BASE = { default = "~/harbor-scratch" }
+
+# Render a different template, or a specific tag of it:
+# HARBOR_TEMPLATE = { default = "~/repo/meta-template" }
+# HARBOR_TEMPLATE_REF = { default = "v2026.10.11.2" }
+
+# Different ports on this machine:
+# TILT_PORT = { default = "10362" }
+# DOCS_PORT = { default = "8362" }

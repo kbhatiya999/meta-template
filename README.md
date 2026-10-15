@@ -72,7 +72,9 @@ copier copy gh:kbhatiya999/meta-template my-meta
 ## Contributing
 
 ```sh
+mise run up       # every developer flow as a button (Tilt dashboard)
 mise run dev      # install your checkout as an editable uv tool
+mise run test     # end-to-end tests, offline
 mise run release  # publish the next version from CHANGELOG.md
 ```
 

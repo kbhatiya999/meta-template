@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# List the Tilt dashboards serving this repo, whichever terminal started them.
+# A Tilt belongs to this repo if its working directory is the repo root.
+#
+#   scripts/tilts                  table: pid, port, started, terminal
+#   scripts/tilts --except PORT    leave out the dashboard on PORT (the caller's own)
+#   scripts/tilts --choices        "pid:port" per line, for Tilt's stop button
+#   scripts/tilts --stop PID       stop that dashboard and everything it started
+#   scripts/tilts --watch --except PORT --state FILE
+#                                  keep FILE equal to --choices, checking every 3s
+#                                  (the Tiltfile watches FILE, so its stop button
+#                                  and the "other tilts" resource stay current)
+set -euo pipefail
+ROOT=$(cd "$(dirname "$0")/.." && pwd -P)
+except="" mode=table
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --except) except="$2"; shift 2;;
+    --choices) mode=choices; shift;;
+    --stop) mode=stop; target="$2"; shift 2;;
+    --watch) mode=watch; shift;;
+    --state) state="$2"; shift 2;;
+    *) echo "unknown argument: $1" >&2; exit 2;;
+  esac
+done
+
+port_of() {  # the dashboard port: TILT_PORT in its env, else --port, else its lowest listening port
+  local pid=$1 p
+  p=$(ps eww -o command= -p "$pid" 2>/dev/null | tr ' ' '\n' | sed -n 's/^TILT_PORT=//p' | head -1)
+  [ -n "$p" ] || p=$(ps -o command= -p "$pid" | sed -n 's/.*--port[= ]\([0-9]*\).*/\1/p')
+  [ -n "$p" ] || p=$(lsof -nP -a -p "$pid" -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR>1{sub(/.*:/,"",$9); print $9}' | sort -n | head -1)
+  echo "$p"
+}
+
+instances() {  # pid port per line
+  for pid in $(pgrep -x tilt || true); do
+    cwd=$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')
+    [ "$cwd" = "$ROOT" ] || continue
+    ps -o command= -p "$pid" | grep -q " up" || continue
+    port=$(port_of "$pid")
+    [ -n "$except" ] && [ "$port" = "$except" ] && continue
+    echo "$pid $port"
+  done
+}
+
+case $mode in
+  table)
+    found=$(instances)
+    if [ -z "$found" ]; then echo "No other Tilt is serving $ROOT."; exit 0; fi
+    printf "%-7s %-6s %-26s %s\n" PID PORT STARTED TERMINAL
+    while read -r pid port; do
+      printf "%-7s %-6s %-26s %s\n" "$pid" "$port" "$(ps -o lstart= -p "$pid")" "$(ps -o tty= -p "$pid")"
+    done <<< "$found"
+    echo
+    echo "$(echo "$found" | wc -l | tr -d ' ') other Tilt(s) run this repo's Tiltfile: their servers fight over the same ports."
+    echo "Stop one with the 'Stop another Tilt' button, or: scripts/tilts --stop <pid>"
+    exit 1;;
+  choices)
+    instances | while read -r pid port; do echo "$pid:$port"; done;;
+  watch)
+    [ -n "${state:-}" ] || { echo "--watch needs --state FILE" >&2; exit 2; }
+    echo "Watching for other Tilts serving $ROOT (list in $state)"
+    while true; do
+      now=$(instances | while read -r pid port; do echo "$pid:$port"; done)
+      if [ ! -f "$state" ] || [ "$now" != "$(cat "$state")" ]; then
+        printf '%s' "$now" > "$state.tmp" && mv "$state.tmp" "$state"
+        echo "$(date +%T) other Tilts: ${now:-none}" | tr '\n' ' '; echo
+      fi
+      sleep 3
+    done;;
+  stop)
+    pid=${target%%:*}
+    instances | awk '{print $1}' | grep -qx "$pid" || { echo "$pid isn't a Tilt serving $ROOT" >&2; exit 1; }
+    echo "Stopping Tilt $pid (port $(port_of "$pid")) and the servers it started..."
+    kill -TERM "$pid"
+    for _ in $(seq 1 20); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
+    if kill -0 "$pid" 2>/dev/null; then echo "still running; try again or close its terminal" >&2; exit 1; fi
+    echo "Stopped.";;
+esac
