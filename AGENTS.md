@@ -20,10 +20,12 @@ cloned exactly once. Docs: <https://kbhatiya999.github.io/meta-template/>.
 | `copier.yml`, `template/` | the template that harbor renders into meta repos |
 | `template/AGENTS.md.jinja` | the AGENTS.md *generated meta repos* get (not this file) |
 | `tests/e2e.sh` | end-to-end tests in an offline sandbox (fake `gh`, local bare repos) |
-| `mise.toml` | developer tasks; `mise tasks` lists them |
-| `Tiltfile` | the same tasks as dashboard buttons (`mise run up`) |
-| `scripts/tilts` | finds other Tilts serving this repo (by working directory) and stops one |
-| `fnox.toml`, `fnox.local.toml` | every value: ports, secrets, flavours (profiles); the local one is gitignored |
+| `mise.toml` | tools and settings only |
+| `mise-tasks/` | the shared toolkit (`tilt:*`, `env`): links into `template/mise-tasks/`, which meta repos get too |
+| `.mise/tasks/` | this repo's own tasks, one script per task; overrides the toolkit by name |
+| `Tiltfile`, `tilt/` | buttons generated from mise tasks (`#TILT` lines in task files); `tilt/` links into `template/tilt/` |
+| `fnox.toml`, `fnox/` | every value: `fnox/config.toml` plain, `fnox/secrets.toml` secrets; profiles in `fnox.toml` |
+| `fnox.local.toml` | your machine's value overrides; gitignored |
 | `mise.local.toml` | which fnox flavour you use (`FNOX_PROFILE`); gitignored |
 | `docs/`, `mkdocs.yml` | the docs site |
 | `CHANGELOG.md` | Keep a Changelog; user-visible changes go under `## [Unreleased]` |
@@ -46,9 +48,10 @@ Use it to share context with other agents and sessions:
 ```sh
 mise run dev     # install this checkout as an editable uv tool (`harbor` on PATH)
 mise run test    # e2e suite, ~35s, touches nothing outside a temp dir
-mise run up      # Tilt dashboard (TILT_PORT in fnox.toml)
-mise run docs    # docs site with live reload (DOCS_PORT in fnox.toml)
-mise run env     # what tasks see: the fnox flavour and values
+mise run tilt:up # Tilt dashboard: a button per task (TILT_PORT in fnox/config.toml)
+mise run docs:serve  # docs site with live reload (DOCS_PORT)
+mise run env     # every value tasks see, and the file it comes from
+mise tasks       # everything
 ```
 
 More in [docs/developing.md](docs/developing.md).
@@ -61,10 +64,17 @@ These describe the present. They're useful defaults, not limits.
   cut by `mise run release` from the Unreleased changelog entry.
 - An editable harbor renders the checkout's **committed** template HEAD, so commit
   template changes before testing them with `harbor sync`.
+- Tasks are script files: shared toolkit in `mise-tasks/` (from the template),
+  repo tasks in `.mise/tasks/`. Add a task by adding a file; Tilt gets a button
+  by itself. `#TILT serve|deps=…|link=…|hide` set how Tilt runs it (not mise
+  `sources`, which makes mise skip unchanged tasks).
 - Values never come from the shell. They all live in fnox (plain config and
-  secrets, flavours as profiles); tasks reach them with `fnox exec`, and mise only
-  sets `FNOX_PROFILE`. Secrets are `env = "exec"`, so shells never see them.
-  `mise run up` starts Tilt with a nearly empty env, so every button resolves
-  values fresh and changes apply without a restart (except `TILT_PORT`).
+  secrets, flavours as profiles); tasks read them fresh on every run, and mise
+  only sets `FNOX_PROFILE`. Secrets are `env = "exec"`, so shells never see them.
+  `mise run tilt:up` starts Tilt with a nearly empty env, so changes apply
+  without a restart (except `TILT_PORT`). Ports default to values derived from
+  the repo path when fnox doesn't set them.
+- Several Tilts for this repo fight over ports; the dashboard's "other tilts"
+  shows them and its button stops one.
 - harbor prints every write it makes. The maintainer wants every change reported,
   by harbor and by agents, with nothing done silently.

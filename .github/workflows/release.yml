@@ -13,7 +13,7 @@ name: Release
 # One-time setup: a PyPI trusted publisher for harbor-meta with this repo,
 # workflow release.yml and environment pypi.
 #
-# Dry run (on GitHub, or locally with `mise run release-dry-run`): version,
+# Dry run (on GitHub, or locally with `mise run release:dry-run`): version,
 # changelog and build only. Under act (ACT=true) it is always a dry run, so a
 # local run can never publish, push or release.
 

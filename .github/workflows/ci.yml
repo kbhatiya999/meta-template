@@ -1,7 +1,7 @@
 name: CI
 
 # Tests, package build and docs build on every push and pull request.
-# Run it locally in Docker: mise run ci-local
+# Run it locally in Docker: mise run ci:local
 
 on:
   push:
@@ -33,4 +33,4 @@ jobs:
         run: mise run build
 
       - name: Docs build
-        run: mise run docs-build
+        run: mise run docs:build

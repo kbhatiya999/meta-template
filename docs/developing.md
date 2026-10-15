@@ -62,37 +62,92 @@ To try a template edit without committing it, render it somewhere disposable:
 copier copy --vcs-ref HEAD ~/repo/meta-template /tmp/try-meta
 ```
 
+## Tasks
+
+Every task is a script file, one per task. mise loads two folders together:
+
+| Folder | Holds | Owned by |
+|--------|-------|----------|
+| `mise-tasks/` | the shared toolkit: `tilt:*`, `env` | the template (`template/mise-tasks/`; here, links to it) |
+| `.mise/tasks/` | this repo's own tasks | this repo; a task with the same name overrides the toolkit's |
+
+A file's path is its name: `.mise/tasks/docs/serve` is `mise run docs:serve`,
+and `build/_default` is plain `build`. Its description and settings are `#MISE`
+comments at the top, and how Tilt treats it is `#TILT` comments
+([below](#dashboard)). `mise.toml` holds only tools and settings, so it never
+grows with the task list.
+
+| Task | Does |
+|------|------|
+| `mise run tilt:up` / `tilt:down` | start / stop this repo's Tilt dashboard |
+| `mise run tilt …` | any tilt command against it, e.g. `mise run tilt get uiresource` |
+| `mise run tilt:others` / `tilt:stop <pid>` | list / stop other Tilts serving this repo |
+| `mise run env` | every value tasks see, and the file it comes from |
+| `mise run dev` / `undev` | install / uninstall the checkout as an editable uv tool |
+| `mise run test` | end-to-end tests in a throwaway sandbox (offline; your config is never touched) |
+| `mise run build` | build the sdist and wheel and check them as PyPI would |
+| `mise run docs:serve` | this site with live reload, on `DOCS_PORT` |
+| `mise run docs:build` | build the site the way CI does (fails on warnings) |
+| `mise run release` | publish the next version, then refresh your install ([Releasing](releasing.md)) |
+| `mise run release:dry-run` | the release workflow locally in Docker: version, changelog, build; publishes nothing |
+| `mise run ci:local` | the CI workflow locally in Docker |
+| `mise run harbor:status` / `harbor:sync` | your installed harbor, with this repo's fnox values |
+| `mise run examples:secret` | a task receiving a secret, redacted in its output |
+
+To add a task, add an executable file:
+
+```bash
+#!/usr/bin/env bash
+#MISE description="Lint the shell scripts"
+#TILT deps=mise-tasks,.mise/tasks
+exec shellcheck mise-tasks/.lib/* .mise/tasks/*
+```
+
+Saved as `.mise/tasks/lint` (and `chmod +x`), it's `mise run lint`, and the
+dashboard grows a *lint* button that reruns whenever a task changes.
+
 ## Dashboard
 
 You don't need to remember any of these flows:
 
 ```sh
-mise run up      # then open the URL it prints
+mise run tilt:up      # then open the URL it prints
 ```
 
-[Tilt](https://tilt.dev) shows every flow as a button, grouped as *develop*,
-*check*, *docs*, *use* and *release*, with its last result and logs:
+[Tilt](https://tilt.dev) shows a button for every task, generated from mise's
+task list, so a new task needs no Tiltfile edit. Buttons are grouped by folder
+(`docs:serve` and `docs:build` under *docs*). By default a task runs when you
+click it; a few comment lines in the task's file change that:
 
-| Resource | Runs | When |
-|----------|------|------|
-| install | `mise run dev` | click, or automatically when `pyproject.toml` or `uv.lock` change |
-| test | `mise run test` | click, or automatically when `src/`, `tests/`, `template/` or `copier.yml` change |
-| docs | `mise run docs` | always running at <http://127.0.0.1:8361/meta-template/> |
-| build, docs-build | the CI checks | click |
-| ci-local | the CI workflow, in Docker | click |
-| release-dry-run | the release workflow, in Docker, publishing nothing | click |
-| harbor status, harbor sync | your installed harbor | click |
-| release | `mise run release` | click |
+| In the task file | Tilt |
+|------------------|------|
+| `#TILT serve` | a long-running server, restarted when config changes |
+| `#TILT deps=src,tests` | also runs whenever those paths change |
+| `#TILT link=http://127.0.0.1:${DOCS_PORT}/` | a link on the resource; `${NAME}` as tasks see it |
+| `#TILT hide` | no button (as do mise's hidden tasks) |
 
-`mise run down` stops it all. Every button is also a plain `mise run <task>`,
+Tilt's file triggers are not mise's `sources`: mise skips a task whose sources
+haven't changed, so a click would silently do nothing.
+
+The Tiltfile is split by job, and its shared parts come from the template:
+
+```text
+Tiltfile                  includes the parts below
+tilt/tasks.Tiltfile       buttons from mise's task list
+tilt/others.Tiltfile      other dashboards for this repo, and the Stop button
+tilt/uibutton.Tiltfile    Tilt's button extension, loaded locally (no download)
+.tilt/Tiltfile            optional: this repo's own extras
+```
+
+`mise run tilt:down` stops it all. Every button is also a plain `mise run <task>`,
 so nothing depends on Tilt.
 
 ### More than one dashboard
 
 Two Tilts running this repo's Tiltfile run every server twice, so they fight
-over ports (`Address already in use`). That happens easily: a `mise run up` in a
-second terminal, or after changing `TILT_PORT`, when the old dashboard keeps
-running on the old port.
+over ports (`Address already in use`). That happens easily: a `mise run tilt:up`
+in a second terminal, or after changing `TILT_PORT`, when the old dashboard
+keeps running on the old port.
 
 Each dashboard watches for the others, found by their working directory, so a
 different port or terminal can't hide one:
@@ -102,54 +157,56 @@ different port or terminal can't hide one:
 - Its **Stop another Tilt** button asks which one, then stops it and the servers
   it started. Servers in your dashboard restart by themselves and take the
   freed ports.
-- `mise run up` also warns before starting when one is already running.
+- `mise run tilt:up` also warns before starting when one is already running.
 
-From a terminal: `scripts/tilts` lists them, `scripts/tilts --stop <pid>` stops one.
+From a terminal: `mise run tilt:others` lists them, `mise run tilt:stop <pid>`
+stops one.
 
-### Values, secrets and flavours
+## Values, secrets and flavours
 
 Tilt keeps the environment it starts with, and reloading the Tiltfile doesn't
 refresh it. So values never come from your shell or from Tilt. They live in
-[fnox](https://fnox.jdx.dev), plain config and secrets alike:
+[fnox](https://fnox.jdx.dev), plain config and secrets alike, split by topic:
 
 | File | Committed | Holds |
 |------|-----------|-------|
-| `fnox.toml` | yes | every value: ports, secrets (stored through a provider), and flavours as profiles |
+| `fnox.toml` | yes | imports the files below, and flavours (profiles) |
+| `fnox/config.toml` | yes | plain values: `TILT_PORT`, `DOCS_PORT`, ... |
+| `fnox/secrets.toml` | yes | secrets (through a provider), always `env = "exec"` |
 | `fnox.local.toml` | no | your machine's overrides; start from `fnox.local.toml.example` |
 | `mise.local.toml` | no | which flavour you use: `FNOX_PROFILE = "<profile>"`; start from `mise.local.toml.example` |
 
-Every consumer reaches fnox the same way, so they all see the same values:
-
-| Who | How |
-|-----|-----|
-| a task that needs values | `run = "fnox exec -- …"` |
-| a Tilt button | `mise run <task>`, so the same |
-| the Tiltfile (the docs link) | `mise exec -- fnox get DOCS_PORT` |
-| Tilt itself | `mise run up` reads `TILT_PORT` with `fnox get`, then starts Tilt with an otherwise empty environment |
-
-`fnox exec` resolves values on every run, and mise sets `FNOX_PROFILE` from
-`mise.local.toml` on every run. So editing a value, adding or removing an
-override, or switching flavour applies the next time you click, with no
-restart, and the docs server restarts by itself. Only `TILT_PORT` needs
-`mise run down` and `mise run up`: Tilt can't move a running dashboard.
+fnox also merges `fnox.toml` files from parent folders and your global config
+(`~/.config/fnox/config.toml`). `mise run env` (also a button) shows which file
+each value actually comes from:
 
 ```console
 $ mise run env
-fnox profile: default
+fnox profile: default  (pick one with FNOX_PROFILE in mise.local.toml)
 
-Plain values:
-  TILT_PORT=10369
-  DOCS_PORT=8361
+  KEY              VALUE                      FROM
+  EXAMPLE_TOKEN    (secret: tasks only)       fnox/secrets.toml
+  TILT_PORT        10369                      fnox/config.toml
+  DOCS_PORT        8361                       fnox/config.toml
 ```
 
-`mise run env` (also a Tilt button) shows what every task sees: the flavour,
-the plain values, and the names of the secrets.
+Every task reads values the same way, fresh on every run, and `mise run tilt:up`
+starts Tilt with an otherwise empty environment. So editing a value, adding or
+removing an override, or switching flavour applies the next time you click,
+with no restart, and servers restart by themselves. Only `TILT_PORT` needs
+`mise run tilt:down` and `tilt:up`: Tilt can't move a running dashboard.
 
-#### Secrets
+### Ports
 
-Secrets are marked `env = "exec"` in `fnox.toml`. Tasks run through `fnox exec`
-receive them; your shell (`fnox activate`), agents' shells and `fnox export`
-never do. Store real values through a provider, never as a plain `default`:
+Each repo gets its own `TILT_PORT` and `DOCS_PORT`, so dashboards of different
+projects run side by side. Set them in fnox; without them the toolkit derives
+both from the repo's path, so every repo still differs without any setup.
+
+### Secrets
+
+Secrets are marked `env = "exec"`: tasks run through `fnox exec` receive them;
+your shell (`fnox activate`), agents' shells and `fnox export` never do. Store
+real values through a provider, never as a plain `default`:
 
 ```sh
 fnox provider add keychain keychain        # once
@@ -157,18 +214,17 @@ fnox set DEPLOY_TOKEN --provider keychain  # prompts for the value
 ```
 
 To give a secret to one task only, with its value redacted in that task's
-output, grant it through mise's [fnox integration](https://mise.jdx.dev/environments/secrets/fnox.html)
-instead of `fnox exec`:
+output, grant it with mise's [fnox integration](https://mise.jdx.dev/environments/secrets/fnox.html):
 
-```toml
-[tasks.deploy]
-secrets = ["DEPLOY_TOKEN"]
-run = './deploy.sh'   # reads $DEPLOY_TOKEN; mise prints [redacted] if it shows up
+```bash
+#!/usr/bin/env bash
+#MISE secrets=["DEPLOY_TOKEN"]
+./deploy.sh   # reads $DEPLOY_TOKEN; mise prints [redacted] if it shows up
 ```
 
-`mise run secret-example` shows this with `EXAMPLE_TOKEN`, a placeholder.
+`mise run examples:secret` shows this with `EXAMPLE_TOKEN`, a placeholder.
 
-#### Flavours
+### Flavours
 
 A flavour is an fnox profile: a set of values that overrides the defaults.
 
@@ -186,30 +242,6 @@ FNOX_PROFILE = "scratch"
 
 Every task and Tilt button now uses the `scratch` values. Remove the line to go
 back to the default.
-
-#### Ports
-
-Each project gets its own ports in `fnox.toml` (`TILT_PORT`, `DOCS_PORT`), so
-dashboards of different projects run side by side. For other Tilt commands use
-`mise run tilt …` (for example `mise run tilt get uiresource`), which reads the
-port from fnox.
-
-## Tasks
-
-| Task | Does |
-|------|------|
-| `mise run up` / `down` | start / stop the Tilt dashboard |
-| `mise run env` | what tasks see: the fnox flavour, plain values and secret names |
-| `mise run tilt …` | any tilt command against this project's dashboard |
-| `mise run dev` | install the checkout as an editable uv tool |
-| `mise run undev` | uninstall it |
-| `mise run test` | end-to-end tests in a throwaway sandbox (offline; your config is never touched) |
-| `mise run build` | build the sdist and wheel and check them as PyPI would |
-| `mise run docs` | serve this site locally with live reload |
-| `mise run docs-build` | build the site the way CI does (fails on warnings) |
-| `mise run release` | publish the next version, then refresh your install ([Releasing](releasing.md)) |
-| `mise run ci-local` | run the CI workflow (`.github/workflows/ci.yml`) locally in Docker |
-| `mise run release-dry-run` | run the release workflow locally: version, changelog, build; publishes nothing |
 
 ## Agents
 
@@ -229,8 +261,8 @@ Docker has to be running first: with [Colima](https://github.com/abiosoft/colima
 `colima start`. The tasks check this and stop with that hint if it isn't.
 
 ```sh
-mise run ci-local          # tests, package build, docs build, as CI runs them
-mise run release-dry-run   # version, changelog cut, build: what a release would do
+mise run ci:local          # tests, package build, docs build, as CI runs them
+mise run release:dry-run   # version, changelog cut, build: what a release would do
 ```
 
 A local release run is always a dry run: the workflow skips publishing, pushing
@@ -242,16 +274,22 @@ container and never reaches your files. On GitHub, the same rehearsal is
 `.actrc` pins act's runner image, so act never stops to ask for one. The first
 run downloads it (about 1 GB).
 
-## Reusing this setup for another product
+## Reusing this setup
 
-None of it names harbor, so it carries over to any uv-packaged Python CLI.
-Copy these files:
+**In meta repos:** the template ships the same toolkit (`mise-tasks/` with
+`tilt:*` and `env`, plus the meta-repo tasks `sync`, `status`, `pull`, ...), the
+same Tiltfile, and the same fnox conventions. Template updates (`harbor sync`)
+keep `mise-tasks/`, `Tiltfile` and `tilt/` current; a repo's own tasks go in
+`.mise/tasks/`, which the template never touches.
+
+**In another product:** nothing in the toolkit names harbor. Copy:
 
 ```text
-mise.toml                         the tasks above
-Tiltfile                          the dashboard (keep the generic part, replace "use")
-scripts/tilts                     finds and stops other Tilts serving the repo
-fnox.toml                         every value: config, secrets, flavours
+mise-tasks/                       the toolkit: tilt:*, env (from template/mise-tasks/)
+Tiltfile, tilt/                   the dashboard (from template/)
+.mise/tasks/                      your own tasks (dev, test, release, ... as examples)
+mise.toml                         tools and settings
+fnox.toml, fnox/                  values and secrets
 fnox.local.toml.example           document per-machine value overrides
 mise.local.toml.example           document picking a flavour (FNOX_PROFILE)
 .actrc, .github/workflows/ci.yml  local workflow runs with act, and CI

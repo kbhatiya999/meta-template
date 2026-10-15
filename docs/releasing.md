@@ -44,7 +44,7 @@ The docs site rebuilds after every release and on every push to `main`.
 ## Previewing the docs
 
 ```sh
-mise run docs
+mise run docs:serve
 ```
 
 ## Maintainer defaults
