@@ -1,23 +1,26 @@
 #!/usr/bin/env bash
-# List the Tilt dashboards serving this repo, whichever terminal started them.
-# A Tilt belongs to this repo if its working directory is the repo root.
+# The Tilt dashboards serving this repo, whichever terminal started them. A Tilt
+# belongs to this repo if its working directory is the repo root. Used by the
+# tilt:* tasks; run those rather than this file.
 #
-#   scripts/tilts                  table: pid, port, started, terminal
-#   scripts/tilts --except PORT    leave out the dashboard on PORT (the caller's own)
-#   scripts/tilts --choices        "pid:port" per line, for Tilt's stop button
-#   scripts/tilts --stop PID       stop that dashboard and everything it started
-#   scripts/tilts --watch --except PORT --state FILE
-#                                  keep FILE equal to --choices, checking every 3s
-#                                  (the Tiltfile watches FILE, so its stop button
-#                                  and the "other tilts" resource stay current)
+#   tilts                     table: pid, port, started, terminal (exit 1 if any)
+#   tilts --except PORT       leave out the dashboard on PORT (the caller's own)
+#   tilts --choices           "pid:port" per line, for Tilt's stop button
+#   tilts --stop PID[:PORT]   stop that dashboard and everything it started
+#   tilts --stop-port PORT    stop the dashboard on PORT, if it serves this repo
+#   tilts --watch --except PORT --state FILE
+#                             keep FILE equal to --choices, checking every 3s
+#                             (the Tiltfile watches FILE, so its stop button and
+#                             the "other tilts" resource stay current)
 set -euo pipefail
-ROOT=$(cd "$(dirname "$0")/.." && pwd -P)
+ROOT=$(cd "${MISE_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}" && pwd -P)
 except="" mode=table
 while [ $# -gt 0 ]; do
   case "$1" in
     --except) except="$2"; shift 2;;
     --choices) mode=choices; shift;;
     --stop) mode=stop; target="$2"; shift 2;;
+    --stop-port) mode=stop-port; target="$2"; shift 2;;
     --watch) mode=watch; shift;;
     --state) state="$2"; shift 2;;
     *) echo "unknown argument: $1" >&2; exit 2;;
@@ -53,7 +56,7 @@ case $mode in
     done <<< "$found"
     echo
     echo "$(echo "$found" | wc -l | tr -d ' ') other Tilt(s) run this repo's Tiltfile: their servers fight over the same ports."
-    echo "Stop one with the 'Stop another Tilt' button, or: scripts/tilts --stop <pid>"
+    echo "Stop one with the 'Stop another Tilt' button, or: mise run tilt:stop <pid>"
     exit 1;;
   choices)
     instances | while read -r pid port; do echo "$pid:$port"; done;;
@@ -68,6 +71,10 @@ case $mode in
       fi
       sleep 3
     done;;
+  stop-port)
+    pid=$(instances | awk -v p="$target" '$2 == p {print $1}' | head -1)
+    if [ -z "$pid" ]; then echo "No Tilt for $ROOT is running on port $target."; exit 0; fi
+    exec "$0" --stop "$pid";;
   stop)
     pid=${target%%:*}
     instances | awk '{print $1}' | grep -qx "$pid" || { echo "$pid isn't a Tilt serving $ROOT" >&2; exit 1; }

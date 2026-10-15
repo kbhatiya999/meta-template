@@ -19,5 +19,12 @@
 # direnv
 .direnv/
 
+# fnox's local overrides can hold secrets: keep them out of search (and agents' context)
+fnox*.local.toml
+.fnox*.local.toml
+
+# Tilt runtime state
+.tilt-others.*
+
 # mani #
 # mani #

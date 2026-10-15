@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Run the CI workflow locally in Docker with act (Docker/Colima must be running)"
+set -euo pipefail
+DOCKER_HOST=$("$MISE_PROJECT_ROOT/.mise/tasks/.lib/docker-host") || exit 1
+export DOCKER_HOST
+exec act push --workflows .github/workflows/ci.yml

@@ -13,8 +13,12 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 WORK=$(cd "$(mktemp -d)" && pwd -P)  # resolved: harbor reports resolved paths
 [ "${KEEP:-}" = 1 ] && echo "sandbox: $WORK" || trap 'rm -rf "$WORK"' EXIT
 
-uv sync --project "$ROOT" --quiet
-HARBOR_BIN="$ROOT/.venv/bin/harbor"
+# harbor in the sandbox's own environment, so runs never touch the repo's .venv
+# or each other (two runs installing into one .venv at once fail at random).
+uv venv --quiet "$WORK/venv"
+uv pip install --quiet --python "$WORK/venv" --editable "$ROOT"
+HARBOR_BIN="$WORK/venv/bin/harbor"
+TILT_BIN=$(cd "$ROOT" && mise which tilt 2>/dev/null || true)  # optional: checks the generated Tiltfile
 
 # ── sandbox ──────────────────────────────────────────────────────────────────
 mkdir -p "$WORK/bin" "$WORK/home/repo" "$WORK/remotes"
@@ -64,9 +68,10 @@ push_remote() {  # push_remote <owner/name> <line>: someone else pushes a commit
 }
 
 pass=0; fail=0
-check() {
-  if eval "$2" >/dev/null 2>&1; then pass=$((pass + 1)); echo "  ✓ $1"
-  else fail=$((fail + 1)); echo "  ✗ $1"; fi
+check() {  # check <name> <shell condition>; on failure, show what the condition printed
+  local got
+  if got=$(eval "$2" 2>&1); then pass=$((pass + 1)); echo "  ✓ $1"
+  else fail=$((fail + 1)); echo "  ✗ $1"; [ -z "$got" ] || printf '%s\n' "$got" | tail -15 | sed 's/^/      /'; fi
 }
 
 # The state that made harbor necessary: an unadopted root, a repo in its
@@ -76,6 +81,8 @@ remote kb/krish; remote kb/adam; remote other/bootcamp
 R="$WORK/home/repo"; M="$R/kb-meta"
 cd "$R"
 git clone -q https://github.com/kb/kb-meta.git kb-meta
+# The root already has its own Tiltfile, which adoption must keep.
+(cd kb-meta && echo "# my own Tiltfile" > Tiltfile && git add Tiltfile && git commit -qm tiltfile && git push -q)
 git clone -q https://github.com/kb/adam.git adam
 git clone -q https://github.com/kb/krish.git krish
 
@@ -92,6 +99,10 @@ check "adopts the root" 'test -f "$M/.copier-answers.yml"'
 check "keeps the root's own README.md and mani.yaml" 'grep -q "# kb/kb-meta" "$M/README.md" && grep -q krish "$M/mani.yaml"'
 check "binds commit identity with includeIf" 'git config --global --get-all "includeIf.gitdir:$M/.path"'
 check "leaves the root clean" 'test -z "$(git -C "$M" status --porcelain)"'
+check "keeps the root's own Tiltfile, recorded as keep" 'grep -q "my own Tiltfile" "$M/Tiltfile" && grep -A3 "^keep:" "$M/.copier-answers.yml" | grep -q Tiltfile'
+check "adds the shared toolkit, executable" 'test -x "$M/mise-tasks/tilt/up" && test -x "$M/mise-tasks/.lib/value" && test -x "$M/mise-tasks/sync"'
+tasks=$(MISE_TRUSTED_CONFIG_PATHS="$M" mise tasks --cd "$M" 2>&1)
+check "mise lists the toolkit and meta-repo tasks" 'for t in tilt:up tilt:down env sync status pull secrets secrets:check; do grep -q "^$t " <<<"$tasks" || { echo "missing $t"; echo "$tasks"; exit 1; }; done'
 
 echo "one clone per repo"
 out=$(harbor sync 2>&1)
@@ -116,7 +127,8 @@ push_remote kb/krish one; push_remote kb/adam two; push_remote other/bootcamp th
 (cd "$M/krish" && echo l > l.txt && git add -A && git commit -qm local)
 echo dirty >> "$M/adam/README.md"
 (cd "$M/courses-meta/bootcamp" && echo conflict >> README.md && git commit -qam conflict)
-check "status shows a repo behind" 'harbor | grep -q "krish .*↓1 behind"'
+st=$(harbor 2>&1)
+check "status shows a repo behind" 'grep -q "krish .*↓1 behind" <<<"$st" || { echo "$st"; false; }'
 out=$(harbor sync 2>&1)
 check "rebases local commits onto upstream" 'grep -q "krish .*rebased" <<<"$out"'
 check "skips a repo with uncommitted work" 'grep -q "adam .*skipped" <<<"$out" && grep -q dirty "$M/adam/README.md"'
@@ -164,6 +176,10 @@ check "no meta repo is left behind" '! HARBOR_TEMPLATE_REF=HEAD harbor | grep -q
 (cd "$TPL" && sed -i.bak "s/Note B./Note C./" template/AGENTS.md.jinja && rm template/AGENTS.md.jinja.bak && git commit -qam C)
 out=$(HARBOR_TEMPLATE_REF=HEAD harbor sync 2>&1)
 check "a conflicting template update is rolled back and reported" 'grep -q "z-meta/ .*conflicts with local edits" <<<"$out" && grep -q Mine. "$R/kb-meta/z-meta/AGENTS.md" && test -z "$(git -C "$R/kb-meta/z-meta" status --porcelain)"'
+if [ -n "$TILT_BIN" ]; then
+  tf=$(cd "$R/kb-meta/z-meta" && MISE_TRUSTED_CONFIG_PATHS="$R" TILT_PORT=10999 "$TILT_BIN" alpha tiltfile-result 2>/dev/null)
+  check "a generated meta repo's Tiltfile has a button per task" 'for t in sync status pull env "other tilts"; do grep -q "\"Name\": \"$t\"" <<<"$tf" || { echo "no button for $t"; exit 1; }; done'
+fi
 check "the root's own README.md is never updated" 'grep -q "^# kb/kb-meta" "$R/kb-meta/README.md" || ! grep -q "Note" "$R/kb-meta/README.md"'
 
 echo

@@ -1,0 +1,3 @@
+#!/bin/sh
+#MISE description="git status across all sub-repos"
+exec mani run status --all

@@ -1,59 +1,22 @@
+# Tools only. Tasks are script files, one per task, in two folders mise loads
+# together:
+#
+#   mise-tasks/     the shared toolkit and meta-repo tasks, kept current by
+#                   template updates (harbor sync); don't edit them here
+#   .mise/tasks/    this repo's own tasks; a same-named task here overrides one
+#                   from mise-tasks/
+#
+#   mise run sync       clone sub-repos
+#   mise run tilt:up    every task as a button in this repo's Tilt dashboard
+#   mise run env        every value tasks see, and where it comes from
+#   mise tasks          list everything
+#
+# Cross-repo tasks (run inside each sub-repo) stay in mani.yaml, so they keep
+# mani's targeting and parallelism: `mani run <task> --all --parallel`.
+
 [tools]
 mani = "latest"
+tilt = "latest"
 {%- if use_fnox %}
 fnox = "latest"
-{%- endif %}
-
-# Cross-repo tasks are declared in mani.yaml so they keep mani's targeting and
-# parallelism; run them directly with `mani run <task> --all --parallel`, or via
-# the thin wrappers below so `mise run` stays the single entry point.
-#
-# Meta-level tasks (sync, secrets) are defined here.
-
-[tasks.sync]
-description = "Clone sub-repos and mirror the mani block into .ignore"
-run = '''
-set -euo pipefail
-
-mani sync
-
-# `mani sync` only maintains the "# mani #" block in .gitignore. Mirror that
-# block into .ignore so cloned sub-repos are excluded from editor search too:
-# what isn't committed isn't searchable.
-block=$(awk '/^# mani #$/{f=!f; next} f' .gitignore)
-
-{
-  awk '/^# mani #$/{exit} {print}' .ignore
-  echo '# mani #'
-  if [ -n "$block" ]; then printf '%s\n' "$block"; fi
-  echo '# mani #'
-} > .ignore.tmp && mv .ignore.tmp .ignore
-
-echo "synced $(printf '%s' "$block" | grep -c . || true) sub-repo(s) into .gitignore and .ignore"
-'''
-
-[tasks.hello]
-description = "Smoke test: run the mani hello task everywhere"
-run = "mani run hello --all"
-
-[tasks.status]
-description = "git status across all sub-repos"
-run = "mani run status --all"
-
-[tasks.pull]
-description = "Fast-forward pull across all sub-repos"
-run = "mani run pull --all"
-
-[tasks.tasks]
-description = "List cross-repo tasks defined in mani.yaml"
-run = "mani list tasks"
-{%- if use_fnox %}
-
-[tasks.secrets]
-description = "List secrets defined in fnox.toml"
-run = "fnox list"
-
-[tasks.check-secrets]
-description = "Verify every secret in fnox.toml resolves"
-run = "fnox check"
 {%- endif %}

@@ -1,0 +1,7 @@
+# Plain values (not secret): printed normally, available to every task.
+
+[secrets]
+# This repo's ports, so its Tilt dashboard and docs server never collide with
+# another project's. Without them the toolkit derives ports from the repo path.
+TILT_PORT = { default = "10369", description = "Tilt dashboard port (change: mise run tilt:down, then tilt:up)" }
+DOCS_PORT = { default = "8361", description = "Port for mise run docs:serve" }

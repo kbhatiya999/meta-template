@@ -1,19 +1,18 @@
-# Developer tasks for a uv-packaged CLI. Nothing here names this project, so the
-# file works as-is in any repo with a pyproject.toml that uses hatch-vcs (see
-# [tool.hatch.version] there) and the release workflow in .github/workflows.
+# Tools and settings only. Tasks are script files, one per task, in two folders
+# mise loads together:
 #
-#   mise run up         every flow below as buttons in the Tilt dashboard
+#   mise-tasks/     the shared toolkit (tilt:*, env), from template/mise-tasks/
+#   .mise/tasks/    this repo's own tasks; a same-named task here overrides the toolkit's
+#
+#   mise run tilt:up    every task as a button in this repo's Tilt dashboard
 #   mise run dev        install this checkout as your own copy of the tool
 #   mise run test       end-to-end tests
-#   mise run release    publish the next version (CI does the work)
-#   mise run ci-local   run the CI workflow locally in Docker (act)
+#   mise run env        every value tasks see, and where it comes from
 #   mise tasks          list everything
 #
-# Values, plain config and secrets alike, live in fnox (fnox.toml; your machine's
-# overrides in fnox.local.toml), never in your shell. Tasks that need them run
-# through `fnox exec`, which resolves them fresh on every run, so a change applies
-# on the next run, Tilt buttons included. mise only picks the fnox flavour:
-# FNOX_PROFILE in mise.local.toml. `mise run env` shows what tasks see.
+# Values, plain config and secrets alike, live in fnox (fnox.toml and the files
+# it imports; your machine's overrides in fnox.local.toml), never in your shell.
+# mise only picks the fnox flavour: FNOX_PROFILE in mise.local.toml.
 
 min_version = "2026.10.4"  # task `secrets` (mise's fnox integration)
 
@@ -27,129 +26,3 @@ uv = "latest"
 tilt = "latest"
 act = "latest"
 fnox = "latest"
-
-[tasks.dev]
-description = "Install this checkout as an editable uv tool: the released package and commands, running your code"
-run = '''
-set -eu
-name=$(sed -n 's/^name = "\(.*\)"$/\1/p' pyproject.toml | head -1)
-uv tool install --editable . --force --reinstall-package "$name" --quiet  # rebuild, so the version is current
-echo "Installed $name from $PWD (editable)"
-uv tool list | awk -v n="$name" '$1 == n {p=1; print; next} p && /^- / {print; next} {p=0}'
-echo
-echo "Code changes apply on the next run. Run 'mise run dev' again after a release,"
-echo "a pull, or a dependency change, to refresh the version and dependencies."
-'''
-
-[tasks.up]
-description = "Open the Tilt dashboard with every flow as a button, on this project's own port"
-run = '''
-set -e
-port=$(fnox get TILT_PORT)
-# Heads-up if another Tilt already serves this repo; the new dashboard's
-# "other tilts" resource lets you stop it.
-scripts/tilts || true
-echo "Tilt dashboard: http://localhost:$port"
-# Tilt keeps the environment it starts with, and a value removed from config would
-# linger in it. So start it nearly empty: every button runs `mise run`/`mise exec`,
-# which resolves values fresh from fnox each time.
-exec env -i HOME="$HOME" USER="$USER" LOGNAME="${LOGNAME:-$USER}" SHELL="${SHELL:-/bin/sh}" \
-  PATH="$PATH" TERM="${TERM:-xterm-256color}" LANG="${LANG:-en_US.UTF-8}" TMPDIR="${TMPDIR:-/tmp}" \
-  ${SSH_AUTH_SOCK:+SSH_AUTH_SOCK="$SSH_AUTH_SOCK"} TILT_PORT="$port" \
-  tilt up
-'''
-
-[tasks.down]
-description = "Stop Tilt and everything it started"
-run = 'TILT_PORT="$(fnox get TILT_PORT)" tilt down'
-
-[tasks.tilt]
-description = "Any tilt command against this project's dashboard: mise run tilt get uiresource"
-run = 'TILT_PORT="$(fnox get TILT_PORT)" tilt'
-
-[tasks.env]
-description = "What tasks and Tilt see from fnox: the active profile, plain values, and secret names"
-run = '''
-echo "fnox profile: ${FNOX_PROFILE:-default}"
-echo
-echo "Plain values:"
-fnox export --format env | sed 's/^export //; s/^/  /'
-echo
-echo "Every key (secrets are env = exec: tasks get them, shells never do):"
-fnox list
-'''
-
-[tasks.test]
-description = "End-to-end tests in a throwaway sandbox (no network, real config untouched)"
-run = "tests/e2e.sh"
-
-[tasks.undev]
-description = "Uninstall the editable tool"
-run = '''
-name=$(sed -n 's/^name = "\(.*\)"$/\1/p' pyproject.toml | head -1)
-uv tool uninstall "$name"
-'''
-
-[tasks.build]
-description = "Build the sdist and wheel into dist/ and check them as PyPI would"
-run = ["rm -rf dist", "uv build --quiet", "uvx --quiet twine check dist/*"]
-
-[tasks.docs]
-description = "Serve the documentation site locally with live reload"
-run = '''
-fnox exec -- sh -c 'exec uv run --only-group docs mkdocs serve --dev-addr "127.0.0.1:$DOCS_PORT"'
-'''
-
-[tasks.docs-build]
-description = "Build the documentation site the way CI does (fails on warnings)"
-run = "uv run --only-group docs mkdocs build --strict"
-
-[tasks.release]
-description = "Publish the next date version: needs an entry under ## [Unreleased] in CHANGELOG.md, pushed"
-run = '''
-set -eu
-if [ -n "$(git status --porcelain)" ] || [ "$(git rev-parse HEAD)" != "$(git rev-parse @{u})" ]; then
-  echo "Commit and push first: the release is built from what's on GitHub." >&2
-  exit 1
-fi
-gh workflow run release.yml
-sleep 3
-gh run watch "$(gh run list --workflow release.yml --limit 1 --json databaseId --jq '.[0].databaseId')" --exit-status
-git pull --quiet
-mise run dev
-'''
-
-[tasks.ci-local]
-description = "Run the CI workflow locally in Docker with act (Docker/Colima must be running)"
-depends = ["docker-check"]
-run = '''
-# act ignores docker contexts, so hand it the current context's socket (Colima's, for example)
-export DOCKER_HOST="${DOCKER_HOST:-$(docker context inspect | sed -n 's/.*"Host": "\(.*\)".*/\1/p' | head -1)}"
-act push --workflows .github/workflows/ci.yml
-'''
-
-[tasks.release-dry-run]
-description = "Run the release workflow locally with act: version, changelog and build only; publishes nothing"
-depends = ["docker-check"]
-run = '''
-export DOCKER_HOST="${DOCKER_HOST:-$(docker context inspect | sed -n 's/.*"Host": "\(.*\)".*/\1/p' | head -1)}"
-act workflow_dispatch --workflows .github/workflows/release.yml --input dry_run=true
-'''
-
-[tasks.secret-example]
-description = "Example of a task that receives a secret: fnox's EXAMPLE_TOKEN, redacted in its output"
-secrets = ["EXAMPLE_TOKEN"]   # only this task gets it; your shell, Tilt and other tasks never do
-run = '''
-echo "EXAMPLE_TOKEN printed: $EXAMPLE_TOKEN"
-echo "EXAMPLE_TOKEN is set, $(printf %s "$EXAMPLE_TOKEN" | wc -c | tr -d ' ') characters long"
-'''
-
-[tasks.docker-check]
-description = "Stop unless Docker is reachable (act needs it)"
-hide = true
-run = '''
-if ! docker info >/dev/null 2>&1; then
-  echo "Docker isn't running, so act can't run workflows. Start it with: colima start" >&2
-  exit 1
-fi
-'''

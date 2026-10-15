@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Your installed harbor's status, with this repo's fnox values (e.g. HARBOR_BASE)"
+exec fnox exec -- harbor status "$@"

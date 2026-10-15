@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="End-to-end tests in a throwaway sandbox (offline; your config is never touched)"
+#TILT deps=src,tests,template,copier.yml
+exec tests/e2e.sh "$@"

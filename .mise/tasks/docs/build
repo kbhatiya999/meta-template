@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Build the documentation site the way CI does (fails on warnings)"
+exec uv run --only-group docs mkdocs build --strict

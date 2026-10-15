@@ -1,35 +1,21 @@
-# Every value this project's tasks and Tilt use: plain config and secrets.
-# mise only picks the flavour (FNOX_PROFILE in mise.local.toml) and runs tasks;
-# tasks that need values run through `fnox exec`, which resolves them fresh on
-# every run, so a change applies on the next run or Tilt click.
+# Every value this repo's tasks and Tilt use, plain config and secrets alike.
+# fnox reads this file (and the ones it imports) on every run, so a change
+# applies on the next task run or Tilt click.
 #
-#   mise run env         the active profile and what tasks see
-#   fnox list            every key and where it comes from
+#   mise run env     each value tasks see, and the file it comes from
 #
 # Overrides for your machine: fnox.local.toml (gitignored; see fnox.local.toml.example).
+# fnox also merges fnox.toml files from parent folders and your global config
+# (~/.config/fnox/config.toml); `mise run env` shows which file each value is from.
 
-[secrets]
-# ── plain config ─────────────────────────────────────────────────────────────
-# Ports for this project only, so its Tilt dashboard and docs server never
-# collide with another project's (Tilt's default is 10350, MkDocs' 8000).
-TILT_PORT = { default = "10369", description = "Tilt dashboard port (change needs mise run down + up)" }
-DOCS_PORT = { default = "8361", description = "Port for mise run docs" }
-
-# ── secrets ──────────────────────────────────────────────────────────────────
-# Always `env = "exec"`: tasks run through `fnox exec` and mise grants receive
-# them, but your shell (fnox activate), agents' shells and `fnox export` never
-# do. Store real values through a provider, never as a plain `default`:
-#   fnox provider add keychain keychain
-#   fnox set NAME --provider keychain
-# For one task only, redacted in its output, grant it in mise.toml with
-# secrets = ["NAME"] (see the secret-example task).
-#
-# Example only, NOT a secret: a plain default so it works without setup.
-EXAMPLE_TOKEN = { default = "example-not-a-real-secret", env = "exec", description = "Example: shows how a task receives a secret" }
+import = [
+  "./fnox/config.toml",   # plain values: ports, ...
+  "./fnox/secrets.toml",  # secrets, env = "exec"
+]
 
 # ── flavours ─────────────────────────────────────────────────────────────────
-# A profile overrides the values above; pick it with FNOX_PROFILE in
-# mise.local.toml. For example, harbor on a throwaway tree:
+# A profile overrides values; pick it with FNOX_PROFILE in mise.local.toml.
+# For example, harbor on a throwaway tree:
 #
 # [profiles.scratch.secrets]
 # HARBOR_BASE = { default = "~/harbor-scratch" }

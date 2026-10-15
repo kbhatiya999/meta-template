@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#MISE description="What every task and Tilt button sees: the fnox flavour, each value and where it comes from"
+set -uo pipefail
+root=$MISE_PROJECT_ROOT
+lib="$root/mise-tasks/.lib"
+short() { local p=${1#"$root/"}; p=${p#./}; echo "${p/#$HOME/~}"; }
+
+echo "fnox profile: ${FNOX_PROFILE:-default}  (pick one with FNOX_PROFILE in mise.local.toml)"
+echo
+if ! command -v fnox >/dev/null 2>&1; then
+  echo "fnox isn't installed, so tasks only see the toolkit's derived ports:"
+  for k in TILT_PORT DOCS_PORT; do printf '  %-16s %-10s %s\n' "$k" "$("$lib/value" "$k")" "derived from the repo path"; done
+  exit 0
+fi
+
+plain=$(fnox export --format env 2>/dev/null)          # KEY=value; secrets (env = "exec") never appear
+sources=$(fnox list --sources 2>/dev/null | awk '/^ [A-Za-z_][A-Za-z0-9_]* / {for (i = 2; i <= NF; i++) if ($i ~ /^\//) {print $1, $i; break}}')
+
+printf '  %-16s %-26s %s\n' KEY VALUE "FROM"
+while read -r key src; do
+  [ -n "$key" ] || continue
+  if line=$(printf '%s\n' "$plain" | grep -m1 "^$key="); then val=${line#*=}; else val="(secret: tasks only)"; fi
+  printf '  %-16s %-26s %s\n' "$key" "$val" "$(short "$src")"
+done <<< "$sources"
+for k in TILT_PORT DOCS_PORT; do
+  printf '%s\n' "$sources" | grep -q "^$k " || printf '  %-16s %-26s %s\n' "$k" "$("$lib/value" "$k")" "derived from the repo path (set it in fnox to change)"
+done

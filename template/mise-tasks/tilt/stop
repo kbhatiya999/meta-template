@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Stop another Tilt serving this repo: mise run tilt:stop <pid>"
+#TILT hide
+set -euo pipefail
+target=${1:-${TILT_TO_STOP:-}}
+[ -n "$target" ] || { echo "Which one? mise run tilt:stop <pid> (mise run tilt:others lists them)" >&2; exit 2; }
+exec "$MISE_PROJECT_ROOT/mise-tasks/.lib/tilts" --stop "$target"

@@ -1,0 +1,3 @@
+#!/bin/sh
+#MISE description="Smoke test: run the mani hello task everywhere"
+exec mani run hello --all

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Serve the documentation site with live reload, on this repo's DOCS_PORT"
+#TILT serve
+#TILT deps=mkdocs.yml
+#TILT link=http://127.0.0.1:${DOCS_PORT}/meta-template/
+set -euo pipefail
+port=$("$MISE_PROJECT_ROOT/mise-tasks/.lib/value" DOCS_PORT)
+exec uv run --only-group docs mkdocs serve --dev-addr "127.0.0.1:$port"

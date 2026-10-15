@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Stop this repo's Tilt dashboard and the servers it started"
+#TILT hide
+set -euo pipefail
+lib="$MISE_PROJECT_ROOT/mise-tasks/.lib"
+exec "$lib/tilts" --stop-port "$("$lib/value" TILT_PORT)"

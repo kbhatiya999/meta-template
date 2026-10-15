@@ -11,5 +11,15 @@
 # direnv
 .direnv/
 
+# Per-machine overrides of mise and fnox config
+mise*.local.toml
+.mise*.local.toml
+**/mise/config*.local.toml
+fnox*.local.toml
+.fnox*.local.toml
+
+# Tilt runtime state (mise run tilt:watch)
+.tilt-others.*
+
 # mani #
 # mani #
