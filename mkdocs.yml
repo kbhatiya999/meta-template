@@ -57,6 +57,20 @@ nav:
   - Updating: updating.md
   - The template: template.md
   - Troubleshooting: troubleshooting.md
+  - Primer:
+      - primer/index.md
+      - Terminal and shell: primer/terminal-and-shell.md
+      - Git: primer/git.md
+      - GitHub and gh: primer/github-and-gh.md
+      - Processes and ports: primer/processes-and-ports.md
+      - Meta repos and mani: primer/meta-repos-and-mani.md
+      - uv and Python packaging: primer/uv-and-packaging.md
+      - mise: primer/mise.md
+      - fnox: primer/fnox.md
+      - Tilt: primer/tilt.md
+      - Copier: primer/copier.md
+      - Docker, Colima and act: primer/docker-and-act.md
+      - Releases and the changelog: primer/releases-and-changelog.md
   - Developing: developing.md
   - Releasing: releasing.md
   - Changelog: changelog.md

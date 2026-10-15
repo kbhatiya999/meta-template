@@ -41,7 +41,9 @@ day) from 2026.10.11 on; earlier template-only releases used semantic versions.
 - `mise run ci:local` and `mise run release:dry-run` run the GitHub workflows locally in
   Docker with act; they stop with a hint when Docker/Colima isn't running.
 - Release workflow `dry_run` input. Runs under act are always dry runs.
-- A [Developing](https://kbhatiya999.github.io/meta-template/developing/) guide.
+- A [Developing](https://kbhatiya999.github.io/meta-template/developing/) guide, and a
+  [Primer](https://kbhatiya999.github.io/meta-template/primer/): one short page per
+  tool and idea you need before working on this repo, in reading order.
 
 ### Changed
 

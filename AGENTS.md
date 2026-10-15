@@ -54,7 +54,9 @@ mise run env     # every value tasks see, and the file it comes from
 mise tasks       # everything
 ```
 
-More in [docs/developing.md](docs/developing.md).
+More in [docs/developing.md](docs/developing.md). New to mise, fnox, Tilt or
+Copier? [docs/primer/](docs/primer/index.md) explains each one in simple words,
+in reading order: read it before changing anything.
 
 ## How things currently work
 

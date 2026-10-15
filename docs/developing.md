@@ -4,6 +4,9 @@ You use harbor the same way your users do: the same package and commands, and
 the version of the release you're building on. The only difference is that your
 copy runs the code in your checkout.
 
+New to the tools here (mise, fnox, Tilt, Copier, ...)? Read the
+[Primer](primer/index.md) first: one short page per tool, in reading order.
+
 ## Setup
 
 Requires [mise](https://mise.jdx.dev) (it installs uv for you) and git.
