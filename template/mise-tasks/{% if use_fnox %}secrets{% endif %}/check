@@ -1,0 +1,3 @@
+#!/bin/sh
+#MISE description="Verify every secret in fnox resolves"
+exec fnox check

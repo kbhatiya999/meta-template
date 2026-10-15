@@ -1,0 +1,24 @@
+#!/bin/sh
+# value NAME: print NAME as every task sees it.
+#
+# From fnox when it defines NAME (active FNOX_PROFILE, fnox.local.toml and
+# global config included). Otherwise, for the ports the toolkit knows, a
+# default derived from the repo's path: the same repo always gets the same
+# port, and different repos almost always get different ones. Exits 1 if
+# NAME has neither.
+set -u
+name=$1
+root=${MISE_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}
+
+if command -v fnox >/dev/null 2>&1 && v=$(cd "$root" 2>/dev/null && fnox get "$name" 2>/dev/null) && [ -n "$v" ]; then
+  echo "$v"
+  exit 0
+fi
+
+case $name in
+  TILT_PORT) base=10400 ;;
+  DOCS_PORT) base=8400 ;;
+  *) exit 1 ;;
+esac
+sum=$(printf %s "$root" | cksum | cut -d' ' -f1)
+echo $((base + sum % 500))

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Stop unless Docker is reachable, then print the socket of the current docker
+# context: act ignores docker contexts (Colima's socket, for example).
+if ! docker info >/dev/null 2>&1; then
+  echo "Docker isn't running, so act can't run workflows. Start it with: colima start" >&2
+  exit 1
+fi
+echo "${DOCKER_HOST:-$(docker context inspect | sed -n 's/.*"Host": "\(.*\)".*/\1/p' | head -1)}"

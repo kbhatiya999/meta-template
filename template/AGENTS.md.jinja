@@ -8,7 +8,11 @@ own. Read this before touching anything.
 ## Layout
 
 - `mani.yaml` — the list of sub-repos (`projects:`) and cross-repo tasks (`tasks:`).
-- `mise.toml` — pinned tools and meta-level tasks.
+- `mise.toml` — pinned tools only.
+- `mise-tasks/` — meta-level tasks and the shared toolkit (`tilt:*`, `env`), one
+  script per task. Template updates keep it current: don't edit it here; put this
+  repo's own tasks in `.mise/tasks/` (same name overrides).
+- `Tiltfile`, `tilt/` — a Tilt dashboard with a button per task (`mise run tilt:up`).
 - `.gitignore` / `.ignore` — both carry a `# mani #` block listing cloned sub-repos.
   Never edit inside that block by hand; `mise run sync` regenerates it.
 {%- if use_fnox %}
@@ -50,10 +54,12 @@ mise run sync                     # clone sub-repos, update .gitignore and .igno
 mise run status                   # git status --short across all sub-repos
 mise run pull                     # git pull --ff-only across all sub-repos
 mise run tasks                    # list cross-repo tasks
+mise run tilt:up                  # every task as a button in this repo's Tilt dashboard
+mise run env                      # every value tasks see, and the file it comes from
 mani run <task> --all --parallel  # run a cross-repo task directly
 mani run <task> --tags <tag>      # ...or target a subset
 {%- if use_fnox %}
-mise run check-secrets            # verify every secret in fnox.toml resolves
+mise run secrets:check            # verify every secret in fnox resolves
 {%- endif %}
 ```
 

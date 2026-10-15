@@ -48,6 +48,9 @@ harbor           # see everything
 
 Continue with [Getting started](getting-started.md).
 
+Working on harbor itself? Start with the [Primer](primer/index.md): one short
+page per tool this project is built on, in reading order.
+
 ## How it fits together
 
 A **meta repo** is a git repo with a `mani.yaml` listing other repos. harbor uses

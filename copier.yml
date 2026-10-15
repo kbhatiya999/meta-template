@@ -13,6 +13,9 @@ _skip_if_exists:
   - "{% if 'mise.toml' in keep %}mise.toml{% endif %}"
   - "{% if 'AGENTS.md' in keep %}AGENTS.md{% endif %}"
   - "{% if 'CLAUDE.md' in keep %}CLAUDE.md{% endif %}"
+  - "{% if 'Tiltfile' in keep %}Tiltfile{% endif %}"
+  - "{% if 'mise-tasks' in keep %}mise-tasks/**{% endif %}"
+  - "{% if 'tilt' in keep %}tilt/**{% endif %}"
 
 _message_after_copy: |
   Meta repo "{{ repo_name }}" created.
@@ -20,7 +23,8 @@ _message_after_copy: |
   Next steps:
     mise install       # install pinned tools
     mise run sync      # clone sub-repos, update .gitignore AND .ignore
-    mise run hello     # verify task runner
+    mise run tilt:up   # every task as a button in a Tilt dashboard
+    mise tasks         # everything else
 
   Use `mise run sync` rather than `mani sync` — mani only updates .gitignore.
 
@@ -60,5 +64,5 @@ use_fnox:
 
 keep:
   type: yaml
-  help: "Template-managed files that stay yours (any of mise.toml, AGENTS.md, CLAUDE.md)"
+  help: "Template-managed files that stay yours (any of mise.toml, AGENTS.md, CLAUDE.md, Tiltfile, mise-tasks, tilt)"
   default: []

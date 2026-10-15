@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#MISE description="Clone sub-repos and mirror the mani block into .ignore"
+set -euo pipefail
+
+mani sync
+
+# `mani sync` only maintains the "# mani #" block in .gitignore. Mirror that
+# block into .ignore so cloned sub-repos are excluded from editor search too:
+# what isn't committed isn't searchable.
+block=$(awk '/^# mani #$/{f=!f; next} f' .gitignore)
+
+{
+  awk '/^# mani #$/{exit} {print}' .ignore
+  echo '# mani #'
+  if [ -n "$block" ]; then printf '%s\n' "$block"; fi
+  echo '# mani #'
+} > .ignore.tmp && mv .ignore.tmp .ignore
+
+echo "synced $(printf '%s' "$block" | grep -c . || true) sub-repo(s) into .gitignore and .ignore"

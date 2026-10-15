@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Keep .tilt-others.<port> listing the other Tilts serving this repo (run by Tilt)"
+#MISE hide=true
+#TILT hide
+set -euo pipefail
+lib="$MISE_PROJECT_ROOT/mise-tasks/.lib"
+port=${TILT_PORT:-$("$lib/value" TILT_PORT)}
+exec "$lib/tilts" --watch --except "$port" --state "$MISE_PROJECT_ROOT/.tilt-others.$port"

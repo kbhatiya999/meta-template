@@ -1,0 +1,93 @@
+# Vendored from https://github.com/tilt-dev/tilt-extensions/tree/master/uibutton
+# under the Apache License 2.0 (see that repository's LICENSE); unchanged below this header.
+# Loaded locally so a dashboard never needs to download it: a failed download
+# would break the whole Tiltfile, not just the button.
+
+LOCATION_RESOURCE = 'resource'
+LOCATION_NAV = 'nav'
+
+location = struct(
+    RESOURCE=LOCATION_RESOURCE,
+    NAV=LOCATION_NAV,
+)
+
+valid_subcommands = ['up', 'ci']
+
+
+def cmd_button(name, resource='', argv=[], text=None,
+               location=LOCATION_RESOURCE, icon_name=None, icon_svg=None,
+               inputs=[], disabled=False, requires_confirmation=False, env=[],
+               dir=config.main_dir):
+    if config.tilt_subcommand not in valid_subcommands:
+        return
+
+    if not location:
+        fail('location is required')
+
+    if not resource:
+        if location == LOCATION_RESOURCE:
+            fail('Must provide a resource name')
+        else:
+            # for nav buttons, default logs to Tiltfile if no resource specified
+            resource = '(Tiltfile)'
+
+    if not argv:
+        fail('argv cannot be empty')
+
+    btn_annotations = {}
+
+    if location == LOCATION_NAV:
+        location = struct(type='Global', id='nav')
+    elif location == LOCATION_RESOURCE:
+        location = struct(type='Resource', id=resource)
+        btn_annotations['tilt.dev/resource'] = resource
+    else:
+        # fallback to simplify experimenting with new locations in the future
+        loc_type, sep, loc_id = location.partition('/')
+        if not sep:
+            fail('Unsupported location {}'.format(location))
+        location = struct(type=loc_type, id=loc_id)
+
+    # transform dict to list of string "key=value" required by v1alpha1.cmd
+    if type(env) == "dict":
+      env_list = []
+      for key, value in env.items():
+        env_list.append(key + "=" + value)
+      env = env_list
+
+    text = text or name
+
+    v1alpha1.ui_button(
+        name=name,
+        location={
+            "component_type": location.type,
+            "component_id": location.id,
+        },
+        text=text,
+        icon_name=icon_name or '',
+        icon_svg=str(icon_svg) if icon_svg else '',
+        annotations=btn_annotations,
+        inputs=inputs,
+        disabled=disabled,
+        requires_confirmation=requires_confirmation,
+    )
+    v1alpha1.cmd(name="btn-" + name, annotations={
+        "tilt.dev/resource": resource,
+        "tilt.dev/log-span-id": 'cmd:' + name,
+    }, args=argv, dir=dir, env=env, start_on=v1alpha1.start_on_spec(ui_buttons=[name]))
+
+
+def text_input(name, label='', default='', placeholder=''):
+    return v1alpha1.ui_input_spec(name=name, label=label,
+                                  text=v1alpha1.ui_text_input_spec(default_value=default, placeholder=placeholder))
+
+
+def bool_input(name, label='', default=False, true_string=None,
+               false_string=None):
+    return v1alpha1.ui_input_spec(name=name, label=label,
+                                  bool=v1alpha1.ui_bool_input_spec(default_value=default, true_string=true_string, false_string=false_string))
+
+
+def choice_input(name, label='', choices=[]):
+    return v1alpha1.ui_input_spec(name=name, label=label,
+                                  choice=v1alpha1.ui_choice_input_spec(choices=choices))

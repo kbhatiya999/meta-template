@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="List other Tilt dashboards serving this repo (fails if there are any)"
+#TILT hide
+set -euo pipefail
+lib="$MISE_PROJECT_ROOT/mise-tasks/.lib"
+# Inside Tilt, TILT_PORT is the dashboard's own port; from a terminal, this repo's.
+exec "$lib/tilts" --except "${TILT_PORT:-$("$lib/value" TILT_PORT)}"

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Build the sdist and wheel into dist/ and check them as PyPI would"
+set -euo pipefail
+rm -rf dist
+uv build --quiet
+uvx --quiet twine check dist/*

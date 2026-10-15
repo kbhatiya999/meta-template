@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Any tilt command against this repo's dashboard: mise run tilt get uiresource"
+#TILT hide
+set -euo pipefail
+TILT_PORT=$("$MISE_PROJECT_ROOT/mise-tasks/.lib/value" TILT_PORT) exec tilt "$@"

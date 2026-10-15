@@ -31,7 +31,9 @@ mise run sync
 ## Tasks
 
 Tasks that run **inside each repo** are declared in `mani.yaml`; **meta-level**
-tasks live in `mise.toml`. `mise run` wraps the former so there's one entry point.
+tasks are scripts in `mise-tasks/`. `mise run` wraps the former so there's one
+entry point, and `mise run tilt:up` shows every task as a button in a Tilt
+dashboard.
 
 | Task | Defined in | Does |
 |------|-----------|------|
@@ -42,7 +44,7 @@ tasks live in `mise.toml`. `mise run` wraps the former so there's one entry poin
 | `mise run tasks` | mise | List the cross-repo tasks |
 {%- if use_fnox %}
 | `mise run secrets` | mise | List secrets in `fnox.toml` |
-| `mise run check-secrets` | mise | Verify every secret resolves |
+| `mise run secrets:check` | mise | Verify every secret resolves |
 {%- endif %}
 
 Because the cross-repo tasks are native mani tasks, you can also target and
@@ -56,7 +58,8 @@ mani tui
 ```
 
 Add a new cross-repo task under `tasks:` in `mani.yaml` (`desc` + `cmd`); add a
-meta-level one to `mise.toml`.
+meta-level one as an executable script in `.mise/tasks/` (`mise-tasks/` is kept
+current by template updates, so don't edit it here).
 
 ## Adding a sub-repo
 

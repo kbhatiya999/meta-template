@@ -1,0 +1,21 @@
+# Every value this repo's tasks and Tilt use, plain config and secrets alike.
+# fnox reads this file (and the ones it imports) on every run, so a change
+# applies on the next task run or Tilt click.
+#
+#   mise run env     each value tasks see, and the file it comes from
+#
+# Overrides for your machine: fnox.local.toml (gitignored; see fnox.local.toml.example).
+# fnox also merges fnox.toml files from parent folders and your global config
+# (~/.config/fnox/config.toml); `mise run env` shows which file each value is from.
+
+import = [
+  "./fnox/config.toml",   # plain values: ports, ...
+  "./fnox/secrets.toml",  # secrets, env = "exec"
+]
+
+# ── flavours ─────────────────────────────────────────────────────────────────
+# A profile overrides values; pick it with FNOX_PROFILE in mise.local.toml.
+# For example, harbor on a throwaway tree:
+#
+# [profiles.scratch.secrets]
+# HARBOR_BASE = { default = "~/harbor-scratch" }

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Uninstall the editable tool"
+set -euo pipefail
+uv tool uninstall "$(sed -n 's/^name = "\(.*\)"$/\1/p' pyproject.toml | head -1)"

@@ -1,0 +1,3 @@
+#!/bin/sh
+#MISE description="List the secrets defined in fnox"
+exec fnox list

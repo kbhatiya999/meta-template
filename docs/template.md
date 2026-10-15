@@ -19,8 +19,10 @@ harbor answers these for you. It takes the slug from the account and name, and
 
 ```text
 mani.yaml          the repos this meta repo holds, and cross-repo tasks
-mise.toml          pinned tools (mani, fnox) and meta-level tasks
-fnox.toml          encrypted secrets (if use_fnox)
+mise.toml          pinned tools (mani, tilt, fnox)
+mise-tasks/        meta-level tasks and the shared toolkit (tilt:*, env), one script each
+Tiltfile, tilt/    a Tilt dashboard with a button per task
+fnox.toml          values and encrypted secrets (if use_fnox)
 .gitignore         what isn't committed, plus the # mani # block
 .ignore            what your editor doesn't search, plus the same block
 AGENTS.md          instructions for coding agents working in the meta repo
@@ -32,17 +34,24 @@ README.md
 ## Tasks
 
 Tasks that run **inside each repo** are mani tasks in `mani.yaml`. **Meta-level**
-tasks are in `mise.toml`, and `mise run` wraps the mani ones so you have one entry point.
+tasks are script files in `mise-tasks/`, and `mise run` wraps the mani ones so
+you have one entry point.
 
-| Task | Defined in | Does |
-|------|-----------|------|
-| `mise run sync` | mise | `mani sync` plus mirroring the `# mani #` block into `.ignore` |
-| `mise run hello` | mani | prints Hello World in every repo |
-| `mise run status` | mani | `git status --short` in every repo |
-| `mise run pull` | mani | `git pull --ff-only` in every repo |
-| `mise run tasks` | mise | lists the cross-repo tasks |
-| `mise run secrets` | mise | `fnox list` (if use_fnox) |
-| `mise run check-secrets` | mise | `fnox check` (if use_fnox) |
+| Task | Does |
+|------|------|
+| `mise run sync` | `mani sync` plus mirroring the `# mani #` block into `.ignore` |
+| `mise run hello` | the mani `hello` task in every repo |
+| `mise run status` | `git status --short` in every repo |
+| `mise run pull` | `git pull --ff-only` in every repo |
+| `mise run tasks` | lists the cross-repo tasks |
+| `mise run secrets` / `secrets:check` | `fnox list` / `fnox check` (if use_fnox) |
+| `mise run tilt:up` | every task as a button in a Tilt dashboard, on the repo's own port |
+| `mise run env` | every value tasks see, and the file it comes from |
+
+`mise-tasks/`, `Tiltfile` and `tilt/` are the shared developer toolkit, the
+same one harbor's own repo uses ([Developing](developing.md)). Template updates
+keep them current, so don't edit them in place: put the meta repo's own tasks in
+`.mise/tasks/`, where a task with the same name overrides the toolkit's.
 
 You can also run mani directly: `mani run status --all --parallel`,
 `mani run pull --tags active`, `mani tui`.

@@ -5,8 +5,19 @@
 #
 #   fnox set MY_SECRET <value>   add a secret
 #   fnox list                    list secrets      (mise run secrets)
-#   fnox check                   verify resolution (mise run check-secrets)
+#   fnox check                   verify resolution (mise run secrets:check)
 #   fnox exec -- <command>       run with secrets in the environment
+#   mise run env                 every value tasks see, and its source file
+#
+# Plain values live here too, e.g. this repo's Tilt port (without it, the
+# toolkit derives one from the repo path):
+#   [secrets]
+#   TILT_PORT = { default = "10401" }
+# Mark real secrets env = "exec": tasks get them, shells never do.
+#
+# fnox also merges fnox.toml files from parent folders, so secrets in your
+# root meta repo reach every repo under it. Per-machine overrides go in
+# fnox.local.toml (gitignored).
 #
 # Encrypt with age — generate a key first:
 #   age-keygen -o ~/.config/fnox/age.key

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#MISE description="Start this repo's Tilt dashboard (every task as a button) on its own port"
+#TILT hide
+set -euo pipefail
+lib="$MISE_PROJECT_ROOT/mise-tasks/.lib"
+port=$("$lib/value" TILT_PORT)
+# Heads-up when another Tilt already serves this repo: its servers would fight
+# over the same ports. The new dashboard's "other tilts" lets you stop it.
+"$lib/tilts" || true
+echo "Tilt dashboard: http://localhost:$port"
+# Tilt keeps the environment it starts with, and a value removed from config
+# would linger in it. So start it nearly empty: every button runs `mise run`,
+# which resolves values fresh each time.
+exec env -i HOME="$HOME" USER="$USER" LOGNAME="${LOGNAME:-$USER}" SHELL="${SHELL:-/bin/sh}" \
+  PATH="$PATH" TERM="${TERM:-xterm-256color}" LANG="${LANG:-en_US.UTF-8}" TMPDIR="${TMPDIR:-/tmp}" \
+  ${SSH_AUTH_SOCK:+SSH_AUTH_SOCK="$SSH_AUTH_SOCK"} TILT_PORT="$port" \
+  tilt up

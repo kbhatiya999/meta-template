@@ -1,0 +1,3 @@
+#!/bin/sh
+#MISE description="Fast-forward pull across all sub-repos"
+exec mani run pull --all

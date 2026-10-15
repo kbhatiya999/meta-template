@@ -72,11 +72,15 @@ copier copy gh:kbhatiya999/meta-template my-meta
 ## Contributing
 
 ```sh
+mise run tilt:up  # every task as a button (Tilt dashboard)
 mise run dev      # install your checkout as an editable uv tool
+mise run test     # end-to-end tests, offline
 mise run release  # publish the next version from CHANGELOG.md
 ```
 
-See [Developing](https://kbhatiya999.github.io/meta-template/developing/) and
+New to the tools? Start with the
+[Primer](https://kbhatiya999.github.io/meta-template/primer/). Then see
+[Developing](https://kbhatiya999.github.io/meta-template/developing/) and
 [Releasing](https://kbhatiya999.github.io/meta-template/releasing/).
 
 ## License

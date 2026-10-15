@@ -38,8 +38,10 @@ TEMPLATE = os.environ.get("HARBOR_TEMPLATE") or (str(CHECKOUT) if EDITABLE else 
 ANSWERS = ".copier-answers.yml"
 RELEASES_GIT = re.sub(r"^gh:", "https://github.com/", RELEASED_TEMPLATE)
 TEMPLATE_FILES = ["README.md", "mani.yaml", "mise.toml", ".gitignore", ".ignore",
-                  "AGENTS.md", "CLAUDE.md", "fnox.toml"]
-TEMPLATE_MANAGED = ["mise.toml", "AGENTS.md", "CLAUDE.md"]  # the rest are yours once created
+                  "AGENTS.md", "CLAUDE.md", "fnox.toml", "Tiltfile", "mise-tasks", "tilt"]
+# Updated by the template; the rest are yours once created.
+TEMPLATE_MANAGED = ["mise.toml", "AGENTS.md", "CLAUDE.md", "Tiltfile", "mise-tasks", "tilt"]
+TEMPLATE_DIRS = {"mise-tasks", "tilt"}
 SKIP_DIRS = {"node_modules", ".venv", "venv", "__pycache__", "dist", "build", "target"}
 SLUG_RE = re.compile(r"^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$")
 MARK = "# mani #"
@@ -60,8 +62,10 @@ def run(args, cwd=None, env=None, check=True) -> subprocess.CompletedProcess:
 
 
 def show(p: Path) -> str:
-    home = str(Path.home())
-    return "~" + str(p)[len(home):] if str(p).startswith(home) else str(p)
+    for home in {str(Path.home()), str(Path.home().resolve())}:  # home may be behind a symlink
+        if str(p) == home or str(p).startswith(home + "/"):
+            return "~" + str(p)[len(home):]
+    return str(p)
 
 
 def bare(url: str) -> str:
@@ -413,7 +417,7 @@ def copier(dest: Path, slug: str, desc: str | None = None, skip=()):
     if desc:
         args += ["--data", f"description={desc}"]
     for f in skip:
-        args += ["--skip", f]
+        args += ["--skip", f"{f}/**" if f in TEMPLATE_DIRS else f]
     if ref := template_ref():
         args += ["--vcs-ref", ref]
     run(args)

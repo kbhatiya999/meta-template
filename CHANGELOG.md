@@ -11,14 +11,45 @@ day) from 2026.10.11 on; earlier template-only releases used semantic versions.
 
 ### Added
 
+- **Developer toolkit for meta repos and this repo alike.** Generated meta repos get
+  `mise-tasks/` (their tasks plus the toolkit), a `Tiltfile` and `tilt/`, kept current
+  by template updates; a repo's own tasks go in `.mise/tasks/`, where the same name
+  overrides the toolkit's. harbor's own repo uses the same files.
+- Tasks are script files, one per task, named by their path (`docs/serve` is
+  `docs:serve`), so no config file grows with the task list.
+- `mise run tilt:up`: a Tilt dashboard with a button for every task, generated from
+  mise's task list. `#TILT serve`, `#TILT deps=…`, `#TILT link=…` and `#TILT hide` in a
+  task's file set how Tilt runs it. Each repo gets its own ports (from fnox, else
+  derived from the repo path), so dashboards of different projects run side by side.
+- A second dashboard for the same repo, from any terminal or port, shows up red under
+  "other tilts", with a button to pick one and stop it (`tilt:others`, `tilt:stop`).
+- Values and secrets in fnox, split into `fnox/config.toml` and `fnox/secrets.toml`;
+  per-machine overrides in `fnox.local.toml`; flavours as fnox profiles picked with
+  `FNOX_PROFILE` in `mise.local.toml`. Tasks read them fresh on every run and Tilt
+  starts with a nearly empty environment, so changes apply without restarting it.
+  Secrets are `env = "exec"`, so shells never see them; `mise run examples:secret`
+  shows a per-task, redacted grant through mise's fnox integration.
+- `mise run env`: every value tasks see, with the file it comes from (global fnox
+  config included).
 - `mise run dev` installs a checkout as an editable uv tool: the same package and
   commands users get, running the checkout's code. An editable harbor renders the
   checkout's committed template, so `harbor sync` brings your own meta repos onto it.
-- Developer tasks in `mise.toml` (`dev`, `build`, `docs`, `release`), written so they
-  can be reused in other uv-packaged CLIs, and a [Developing](https://kbhatiya999.github.io/meta-template/developing/) guide.
+- `mise run test`: end-to-end tests in an offline sandbox with a fake `gh` and local
+  bare repos standing in for GitHub; each run is isolated, and a failing check shows
+  the output it checked.
+- CI workflow: tests, package build and docs build on every push and pull request.
+- `mise run ci:local` and `mise run release:dry-run` run the GitHub workflows locally in
+  Docker with act; they stop with a hint when Docker/Colima isn't running.
+- Release workflow `dry_run` input. Runs under act are always dry runs.
+- A [Developing](https://kbhatiya999.github.io/meta-template/developing/) guide, and a
+  [Primer](https://kbhatiya999.github.io/meta-template/primer/): one short page per
+  tool and idea you need before working on this repo, in reading order.
 
 ### Changed
 
+- **Meta repos:** tasks moved from `mise.toml` to `mise-tasks/`; `check-secrets` is now
+  `secrets:check`. `harbor adopt` keeps a meta repo's existing `Tiltfile`,
+  `mise-tasks/` or `tilt/` as its own.
 - The package version comes from git tags (hatch-vcs): a release is `2026.10.11.2`,
   and a build after it is `2026.10.11.2.postN.devM+g<hash>`.
 
@@ -26,6 +57,7 @@ day) from 2026.10.11 on; earlier template-only releases used semantic versions.
 
 - A template update that copier can't apply is rolled back and reported, instead of
   stopping `harbor sync` with an error.
+- Paths under a home folder reached through a symlink are shown as `~/…`.
 
 ## [2026.10.11.2] - 2026-10-11
 
