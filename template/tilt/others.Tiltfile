@@ -5,7 +5,7 @@
 # .tilt-others.<port> (gitignored) so the button and status stay current, and
 # servers restart when it changes, taking any port that was freed.
 
-load('ext://uibutton', 'cmd_button', 'choice_input')
+load('./uibutton.Tiltfile', 'cmd_button', 'choice_input')
 
 ROOT = config.main_dir
 OTHERS_FILE = os.path.join(ROOT, '.tilt-others.' + os.getenv('TILT_PORT', '10350'))

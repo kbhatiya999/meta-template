@@ -151,7 +151,7 @@ check "adopt refuses a repo with uncommitted changes" '! harbor adopt "$M/x-meta
 echo "template updates"
 TPL="$WORK/template"
 git clone -q "$ROOT" "$TPL" && rsync -a --exclude .git "$ROOT/" "$TPL/" \
-  && (cd "$TPL" && git add -A && git commit -qm wip && git tag v2026.1.1 \
+  && (cd "$TPL" && git add -A && git commit -q --allow-empty -m wip && git tag v2026.1.1 \
       && echo "Note A." >> template/AGENTS.md.jinja && git commit -qam A && git tag v2026.1.2)
 export HARBOR_TEMPLATE="$TPL"
 rm -rf "$R"/* && mkdir -p "$R"
